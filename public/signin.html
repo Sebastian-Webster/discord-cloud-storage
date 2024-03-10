@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Signin</title>
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body class="centred">
+        <form id="signin-form" class="form">
+            <h1>Signin</h1>
+            <p>Or <a href='/signup.html'>Signup</a></p>
+            <div>
+                <label for="username-input">Username:</label>
+                <input type="text" id="username-input" placeholder="Username" name="username" autofocus>
+            </div>
+            <div>
+                <label for="password-input">Password:</label>
+                <input type="password" id="password-input" placeholder="Password" name="password">
+            </div>
+            <input type="submit" value="Login">
+            <b class="error" id="signin-error"></b>
+        </form>
+    </body>
+    <script>
+        document.getElementById('signin-form').addEventListener('submit', signin);
+
+        function signin(e) {
+            e.preventDefault();
+
+            fetch('/login', {
+                method: 'POST',
+                body: JSON.stringify({
+                    username: e.target.username.value,
+                    password: e.target.password.value
+                }),
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(response => {
+                const errorText = document.getElementById('signin-error');
+                if (response.ok) {
+                    window.location.href = '/index.html'
+                } else {
+                    response.json().then(json => {
+                        errorText.innerHTML = json.message
+                    }).catch(error => {
+                        console.error(error)
+                        errorText.innerText = 'An error occurred. Please try again.'
+                    })
+                }
+            })
+        }
+    </script>
+</html>

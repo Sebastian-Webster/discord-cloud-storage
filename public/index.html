@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>File Storage</title>
+        <link rel="stylesheet" href="index.css">
+    </head>
+    <body>
+        <noscript>
+            <h1>This website requires JavaScript enabled in your browser to work. Please enable JavaScript in your browser and then reload the page for this warning to go away.</h1>
+        </noscript>
+        <template id="file-template">
+            <div class="file">
+                <div>
+                    <h4 class="file-filename">Filename</h4>
+                    <div class="file-metadata-and-download">
+                        <div>
+                            <p class="file-filesize">File Size</p>
+                        </div>
+                        <button class="file-download-button">
+                            <h5 class="ant-design">&#xE6B7</h5>
+                        </button>
+                        <button class="file-delete-button">
+                            <h5 class="ant-design">&#xE69F</h5>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </template>
+
+        <template id="file-action-template">
+            <div class="file-action-item">
+                <div class="file-action-container">
+                    <h5 class="file-action-filename"></h5>
+                    <h6 class="progress-bar-text"></h6>
+                    <div class="progress-bar"></div>
+                </div>
+            </div>
+        </template>
+
+        <template id="file-action-error-template">
+            <div class="file-action-error-container">
+                <h5>An error occurred.</h5>
+                <h3 class="file-action-error-ok-text">OK</h3>
+            </div>
+        </template>
+
+
+
+        <nav>
+            <h1>File Storage</h1>
+            <label for="file-upload" id="add-file-button">&#xE627</label>
+        </nav>
+        <main>
+            <form id="file-upload-form">
+                <input type="file" name="file" id="file-upload" hidden/>
+            </form>
+            <div id="before-files-container">
+                <h1>Loading files...</h1>
+            </div>
+            <div id="lost-connection" class="invisible"><b>Lost Connection To Server</b><p id="socket-reconnect" onclick="manualSocketConnect()">Try Reconnecting</p></div>
+            <div id="files-list"></div>
+            <div id="action-progress" class="invisible">
+                <div id="action-progress-header">
+                    <h3>Current File Actions</h3>
+                    <h1 onclick="toggleFileActionView()" id="action-progress-caret">&#xE606</h1>
+                </div>
+                <div id="action-progress-items-container"></div>
+            </div>
+        </main>
+    </body>
+    <script src="https://cdn.socket.io/4.7.4/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/index.js"></script>
+</html>

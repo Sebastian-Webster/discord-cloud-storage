@@ -1,0 +1,274 @@
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans&display=swap');
+
+@font-face {
+    font-family: "AntDesign";
+    src: url('/fonts/AntDesign.ttf')
+}
+
+:root {
+    --link-color: rgb(0, 145, 255)
+}
+
+* {
+    font-family: "Open Sans", sans-serif;
+}
+
+.error {
+    color: red;
+}
+
+html {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+body {
+    margin: 0;
+    width: 100%;
+}
+
+body.centred {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex: 1
+}
+
+.form {
+    border: 1px solid black;
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    box-shadow: 0px 0px 10px black;
+}
+
+h1, h2, h3, h4, h5, h6, p {
+    margin: 0
+}
+
+.form > * {
+    margin-top: 15px;
+}
+
+input[type="submit"] {
+    background-color: rgb(90, 236, 90);
+    border-radius: 10px;
+    border: 1px solid black;
+    padding: 10px 30px;
+    transition: transform 100ms;
+}
+
+input[type="submit"]:hover {
+    transform: scale(1.1);
+    cursor: pointer;
+    box-shadow: 2px 2px black;
+    font-weight: bold;
+}
+
+input[type="submit"]:active {
+    transform: scale(0.9);
+    cursor: pointer;
+    box-shadow: 4px 4px black;
+    font-weight: bold;
+}
+
+nav {
+    position: fixed;
+    top: 0px;
+    height: 40px;
+    border-bottom: 2px solid black;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: white;
+}
+
+main {
+    padding-top: 40px;
+}
+
+#add-file-button {
+    font-size: 30pt;
+    margin-right: 10px;
+    font-family: "AntDesign";
+}
+
+#files-list {
+    display: flex;
+    justify-content: flex-start;
+    align-items: center;
+    width: 100%;
+    flex-wrap: wrap;
+}
+
+.file {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-basis: 100%;
+    margin-top: 10px;
+    max-width: 100%;
+}
+
+.file > div {
+    padding: 10px 20px;
+    border: 2px solid black;
+    border-radius: 5px;
+    width: 50%;
+}
+
+.file-filename {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.file-metadata-and-download {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+@media only screen and (min-width: 600px) {
+    .file {
+        flex-basis: 50%;
+        max-width: 50%;
+    }
+}
+
+@media only screen and (min-width: 1200px) {
+    .file {
+        flex-basis: 25%;
+        max-width: 25%;
+    }
+}
+
+noscript {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    width: 100%;
+    background-color: white;
+    text-align: center;
+    color: red;
+}
+
+#action-progress {
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    border: 1px solid black;
+    position: fixed;
+    bottom: 0px;
+    right: 10px;
+    background-color: white;
+    width: min(100vw, 300px);
+}
+
+#action-progress-header {
+    border-bottom: 2px solid black;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.progress-bar {
+    background-color: var(--link-color);
+    height: 10px;
+    width: 0px;
+    transition: width 100ms;
+}
+
+.file-action-filename {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+label {
+    user-select: none;
+}
+
+#action-progress-items-container {
+    overflow: auto;
+    max-height: min(300px, 20vh);
+}
+
+#action-progress-caret {
+    font-family: "AntDesign";
+    margin-right: 10px;
+    user-select: none;
+    margin-top: -7px;
+}
+
+.ant-design {
+    font-family: "AntDesign";
+}
+
+@keyframes pulsating {
+    0% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+.file-action-error-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-action-error-ok-text {
+    color: var(--link-color);
+    cursor: pointer;
+}
+
+#lost-connection {
+    width: 100%;
+    height: 20px;
+    background-color: red;
+    color: white;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#socket-reconnect {
+    cursor: pointer;
+    color: blue;
+    margin-left: 10px;
+}
+
+.reconnecting#socket-reconnect {
+    cursor: inherit;
+    color: inherit;
+}
+
+.invisible {
+    display: none !important;
+}
+
+#before-files-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    text-align: center;
+}

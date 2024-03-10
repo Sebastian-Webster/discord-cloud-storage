@@ -1,0 +1,385 @@
+function getParsedCookies() {
+    const cookie = document.cookie;
+    const splitCookies = cookie.split(';');
+    const cookies = {};
+    for (const cookie of splitCookies) {
+        const splitCookie = cookie.split('=');
+        const key = splitCookie[0];
+        const value = splitCookie[1];
+
+        cookies[key] = value;
+    }
+    return cookies;
+}
+
+let fileActionsShowing = false;
+const fileActions = document.getElementById('action-progress');
+const fileActionContainer = document.getElementById('action-progress-items-container');
+const fileList = document.getElementById('files-list')
+const fileTemplate = document.getElementById('file-template');
+const fileActionErrorTemplate = document.getElementById('file-action-error-template');
+const lostConnectionDiv = document.getElementById('lost-connection');
+const socketReconnectButton = document.getElementById('socket-reconnect');
+
+function showFileActions() {
+    if (fileActionsShowing === false) {
+        fileActionsShowing = true;
+
+        fileActions.classList.remove('invisible');
+    }
+}
+
+function hideFileActions() {
+    fileActionsShowing = false;
+
+    fileActions.classList.add('invisible')
+}
+
+function removeFileActionFromList(id) {
+    document.getElementById(`file-action-${id}`)?.remove();
+
+    if (fileActionContainer.childElementCount === 0) {
+        hideFileActions()
+    }
+}
+
+axios.interceptors.response.use(response => {
+    return response
+}, (error) => {
+    const redirect = error?.response?.data?.redirect;
+    if (redirect) {
+        window.location.href = redirect;
+    }
+    return Promise.reject(error)
+})
+
+const socket = io({
+    auth: {
+        userId: getParsedCookies().auth
+    }
+});
+
+socket.on('connect', () => {
+    console.log('Socket connected')
+    hideLostConnection()
+})
+
+socket.on('disconnect', (reason) => {
+    console.log('Socket disconnected for reason:', reason)
+    showLostConnection();
+})
+
+socket.on('connect_error', (errorObj) => {
+    console.error('An error occurred while connecting to socket:', errorObj)
+    showLostConnection();
+})
+
+function createActionDiv(action) {
+    const actionDiv = document.getElementById('file-action-template').content.cloneNode(true);
+    actionDiv.querySelector('.file-action-filename').textContent = action.fileName;
+    actionDiv.querySelector('.file-action-item').id = `file-action-${action.fileId}`;
+    actionDiv.querySelector('.progress-bar-text').textContent = action.text;
+
+    const progressBar = actionDiv.querySelector('.progress-bar');
+    if (action.currentChunk === -1 && action.chunkCount === -1) {
+        progressBar.style.animation = 'pulsating 1.5s infinite';
+        progressBar.style.width = '100%'
+    } else {
+        progressBar.style.animation = 'none';
+        progressBar.style.width = `${action.currentChunk / action.chunkCount * 100}%`;
+    }
+
+    showFileActions();
+    fileActionContainer.appendChild(actionDiv);
+}
+
+function removeChildrenFromElement(element) {
+    while (element?.firstElementChild) {
+        element.lastElementChild.remove()
+    }
+}
+
+socket.on('initial-file-actions', (fileActions) => {
+    console.log('Initial file actions:', fileActions)
+    removeChildrenFromElement(fileActionContainer)
+    if (fileActions.length > 0) {
+        showFileActions()
+
+        for (const action of fileActions) {
+            createActionDiv(action)
+        }
+    } else {
+        hideFileActions();
+    }
+})
+
+socket.on('file-action', (action) => {
+    console.log('Action received:', action)
+    const actionDiv = document.getElementById(`file-action-${action.fileId}`)
+
+    if (actionDiv) {
+        const progressBar = actionDiv.querySelector('.progress-bar');
+        actionDiv.querySelector('.progress-bar-text').textContent = action.text;
+        progressBar.style.width = `${action.currentChunk / action.chunkCount * 100}%`
+
+        if (action.currentChunk === -1 && action.chunkCount === -1) {
+            progressBar.style.animation = 'pulsating 1.5s infinite';
+        } else {
+            progressBar.style.animation = 'none';
+        }
+
+        return
+    }
+
+    createActionDiv(action);
+})
+
+function createBeforeFilesContainer() {
+    const beforeContainer = document.getElementById('before-files-container');
+    if (beforeContainer) beforeContainer.remove();
+
+    const beforeFilesContainer = document.createElement('div');
+    beforeFilesContainer.id = 'before-files-container';
+    document.querySelector('main').appendChild(beforeFilesContainer);
+    return beforeFilesContainer;
+}
+
+socket.on('remove-file-action', (data) => {
+    console.log('Removed file action:', data)
+    if (data.error) {
+        const fileAction = document.getElementById(`file-action-${data.fileId}`)
+        fileAction.querySelector('.file-action-container').remove();
+
+        const errorItem = document.getElementById('file-action-error-template').content.cloneNode(true);
+        errorItem.id = `file-action-${data.fileId}`
+        errorItem.querySelector('.file-action-error-ok-text').setAttribute('onclick', `removeFileActionFromList('${data.fileId}')`)
+
+        fileAction.appendChild(errorItem)
+        return
+    }
+
+    if (data.actionType === 'Upload') {
+        getFiles()
+    } else if (data.actionType === 'Delete') {
+        document.getElementById(`file-${data.fileId}`).remove()
+        if (document.getElementById('files-list').childElementCount === 0) {
+            const container = createBeforeFilesContainer();
+
+            const text = document.createElement('h1')
+            text.textContent =  'No files. Press the + button to upload something!'
+
+            container.appendChild(text);
+        }
+    }
+
+    removeFileActionFromList(data.fileId)
+})
+
+function toggleFileActionView() {
+    const caret = document.getElementById('action-progress-caret');
+
+    console.log(caret.textContent)
+
+    const up = '\uE607';
+    const down = '\uE606';
+
+    if (caret.textContent === up) {
+        caret.textContent = down;
+        fileActionContainer.style.display = 'block';
+        caret.style.marginBottom = '0px';
+        caret.style.marginTop = '-7px';
+        return
+    }
+
+    caret.textContent = up;
+    caret.style.marginBottom = '-7px';
+    caret.style.marginTop = '0px';
+    fileActionContainer.style.display = 'none';
+}
+
+function onUploadProgress(fileId) {
+    const fileActionDiv = document.getElementById(`file-action-${fileId}`);
+    const progressBar = fileActionDiv.querySelector('.progress-bar');
+    const progressBarText = fileActionDiv.querySelector('.progress-bar-text');
+
+    return function(progressEvent) {
+        if (progressEvent.progress === 1) {
+            progressBarText.textContent = 'Waiting for server...';
+            progressBar.style.width = '100%';
+            progressBar.style.animation = 'pulsating 1.5s infinite';
+            return
+        }
+    
+        console.log(progressEvent);
+        progressBar.style.width = `${progressEvent.progress * 100}%`;
+        progressBarText.textContent = `${(progressEvent.progress * 100).toFixed(1)}% uploaded...`
+    }
+}
+
+document.getElementById('file-upload').addEventListener('change', uploadFile);
+function uploadFile(e) {
+    e.preventDefault();
+
+    showFileActions();
+
+    const formData = new FormData();
+
+    const fileId = crypto.randomUUID()
+
+    formData.append('file', e.target.files[0])
+    formData.append('fileId', fileId)
+
+    const actionDiv = document.getElementById('file-action-template').content.cloneNode(true);
+    actionDiv.querySelector('.file-action-filename').textContent = e.target.files[0].name;
+    actionDiv.querySelector('.file-action-item').id = `file-action-${fileId}`;
+
+    fileActionContainer.appendChild(actionDiv);
+
+    document.getElementById('file-upload-form').reset();
+
+    axios.post('/auth/file', formData, {onUploadProgress: onUploadProgress(fileId)}).catch(error => {
+        console.error(error)
+        alert('An error occurred.')
+    })
+}
+
+const byteArray = ['B', 'KB', 'MB', "GB", 'TB', 'PB', 'EB', 'ZB', 'YB', 'BB', 'GEB']
+
+function SizeCalculator(bytes) {
+    let byteIndex = 0;
+    do {
+        if (bytes < 1000) {
+            break
+        }
+
+        bytes /= 1000;
+        byteIndex++;
+    } while (bytes >= 1000)
+
+    return `${parseFloat(bytes.toFixed(2))}${byteArray[byteIndex]}`
+}
+
+function createFile(file) {
+    //Would be _id if getting it from GET /auth/files API
+    //Would be fileId if getting it from fileAction Socket
+    const fileId = file.fileId || file._id
+
+    const beforeFilesContainer = document.getElementById('before-files-container');
+
+    if (beforeFilesContainer) {
+        beforeFilesContainer.remove();
+    }
+
+    const fileElement = fileTemplate.content.cloneNode(true)
+    fileElement.querySelector('.file').id = `file-${fileId}`
+    fileElement.querySelector('.file-filename').textContent = file.fileName;
+    fileElement.querySelector('.file-filesize').textContent = SizeCalculator(file.fileSize);
+    fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}')`)
+    fileElement.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${file.fileName}')`)
+
+    fileList.appendChild(fileElement)
+}
+
+function retryGettingFiles() {
+    changeFilesLoadingContainerContent(false);
+    getFiles();
+}
+
+function changeFilesLoadingContainerContent(error) {
+    const container = createBeforeFilesContainer();
+
+    const text = document.createElement('h1');
+
+    if (error) {
+        text.textContent = `An error occurred while loading files.`
+        text.classList.add('error');
+        const tryAgain = document.createElement('h2');
+        tryAgain.textContent = 'Try Again'
+        tryAgain.setAttribute('onclick', 'retryGettingFiles()')
+        tryAgain.style.color = 'var(--link-color)';
+        tryAgain.style.cursor = 'pointer';
+        container.appendChild(text);
+        container.appendChild(tryAgain);
+    } else {
+        const text = document.createElement('h1');
+        text.textContent = 'Loading files...';
+        container.appendChild(text)
+    }
+}
+
+function getFiles() {
+    axios.get('/auth/files').then(response => {
+        const data = response.data;
+        console.log(data);
+
+        if (data.files.length === 0) {
+            const container = createBeforeFilesContainer();
+
+            const text = document.createElement('h1');
+            text.textContent = 'No files. Press the + button to upload something!'
+            container.appendChild(text);
+            return
+        }
+
+        document.getElementById('before-files-container')?.remove();
+
+        removeChildrenFromElement(document.getElementById('files-list'));
+
+        for (const file of data.files) {
+            createFile(file)
+        }
+    }).catch(error => {
+        console.error(error)
+        changeFilesLoadingContainerContent(true)
+    })
+}
+getFiles()
+
+function deleteFile(fileId) {
+    console.log('Delete file has been called with fileId:', fileId)
+    axios.delete(`/auth/file/${fileId}`).catch(error => {
+        console.error(error)
+        alert('An error occurred while deleting file. Please try again.')
+    })
+}
+
+function downloadFile(fileId, fileName) {
+    axios.get(`/auth/file/${fileId}`, {responseType: 'blob'}).then(response => {
+        const href = URL.createObjectURL(response.data);
+        const a = document.createElement('a');
+        a.href = href;
+        a.setAttribute('download', fileName);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(href)
+    }).catch(error => {
+        console.error('Error downloading file:', error)
+        alert('An error occurred while downloading file. Please try again.')
+    })
+}
+
+function changeSocketReconnectText(reconnecting) {
+    const text = reconnecting ? 'Reconnecting...' : 'Try Reconnecting';
+    socketReconnectButton.textContent = text;
+    
+    if (reconnecting) {
+        socketReconnectButton.classList.add('reconnecting')
+    } else {
+        socketReconnectButton.classList.remove('reconnecting')
+    }
+}
+
+function manualSocketConnect() {
+    changeSocketReconnectText(true)
+    socket.connect();
+}
+
+function showLostConnection() {
+    lostConnectionDiv.classList.remove('invisible');
+
+    changeSocketReconnectText(false)
+}
+
+function hideLostConnection() {
+    lostConnectionDiv.classList.add('invisible');
+}
