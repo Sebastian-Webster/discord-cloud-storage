@@ -11,6 +11,9 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4.1.1
 
+    - name: Set up containerd
+      uses: crazy-max/ghaction-setup-containerd@v3
+
     - name: Login to Docker
       run: docker login -u ${{ secrets.DOCKER_HUB_USERNAME }} -p ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
 
