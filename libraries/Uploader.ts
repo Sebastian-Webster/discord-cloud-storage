@@ -107,6 +107,12 @@ export default class Uploader {
 
             newFile.save().then(() => {
                 this.#sendHTTP(200, 'Success')
+                fs.rm(this.#folderpath, {recursive: true, force: true}, (err) => {
+                    if (err) {
+                        console.error('An error occurred while deleting temp folder path:', this.#folderpath, '. The error was:', err)
+                    }
+                    console.log('Successfully deleted temp folder')
+                })
             }).catch(error => {
                 console.error('An error occurred while saving file to MongoDB:', error)
                 this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')
