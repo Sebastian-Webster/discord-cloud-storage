@@ -1,10 +1,5 @@
 {
   "dependencies": {
-    "@types/bcrypt": "^5.0.2",
-    "@types/cookie-parser": "^1.4.6",
-    "@types/express": "^4.17.21",
-    "@types/multer": "^1.4.11",
-    "@types/uuid": "^9.0.8",
     "axios": "^1.6.7",
     "bcrypt": "^5.1.1",
     "cookie-parser": "^1.4.6",
@@ -20,5 +15,12 @@
   },
   "scripts": {
     "start": "npx ts-node index.ts --files types/index.d.ts"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^5.0.2",
+    "@types/cookie-parser": "^1.4.7",
+    "@types/express": "^4.17.21",
+    "@types/multer": "^1.4.11",
+    "@types/uuid": "^9.0.8"
   }
 }
