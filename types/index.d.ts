@@ -9,6 +9,7 @@ declare global {
             encryptionKey: string,
             discordBotToken: string,
             discordChannelId: string
+            NoHTTPS?: string
         }
     }
     
