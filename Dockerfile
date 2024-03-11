@@ -4,7 +4,7 @@ WORKDIR /server
 RUN npm install -g ts-node
 COPY ./package-lock.json .
 COPY ./package.json .
-RUN npm ci
+RUN npm ci --omit dev
 
 COPY . .
 EXPOSE 25565
