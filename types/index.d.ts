@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import { CookieOptions } from 'express';
 
 declare global {
     namespace NodeJS {
@@ -82,4 +83,15 @@ declare global {
     }
     
     type ISocketFileActions = ISocketFileAction[]
+
+    interface HTTPCookie {
+        name: string,
+        val: string,
+        cookieOptions?: CookieOptions
+    }
+
+    interface SendHTTPOptions {
+        clearCookie?: string,
+        setCookies?: HTTPCookie[]
+    }
 }

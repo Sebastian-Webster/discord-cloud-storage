@@ -1,4 +1,4 @@
-const chunkSize = 24.5 * 1024 * 1024 //24MB - Discord limit is 25MB, so having each file 1MB less than the limit ensures the limit is never reached
+const chunkSize = 24.5 * 1024 * 1024 //24.5MB - Discord limit is 25MB, so having each file 1MB less than the limit ensures the limit is never reached
 
 import { Router } from "express";
 import { validateAuth } from "../middleware/HTTPAuth";
@@ -16,6 +16,7 @@ import { DeleteFile } from "../libraries/Deleter";
 import mongoose from "mongoose";
 import { validateUUIDV4 } from "../libraries/UUID";
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
+import HTTP from "../libraries/HTTP";
 
 const userController = Router()
 
@@ -60,16 +61,16 @@ function writeStreamPromise(stream: fs.WriteStream, chunk: Buffer): Promise<void
 
 userController.post('/file', upload.single('file'), (req, res) => {
     if (!req.file) {
-        return res.status(400).json({message: 'A file must be provided.'})
+        return HTTP.SendHTTP(req, res, 400, 'A file must be provided.')
     }
 
     if (!validateUUIDV4(req.body.fileId)) {
         console.log('Invalid UUIDv4', req.body.fileId)
-        return res.status(400).send('fileId must be a UUIDV4')
+        return HTTP.SendHTTP(req, res, 400, 'fileId must be a UUIDv4')
     }
 
     UserModel.findOne({_id: {$eq: req.cookies.auth}}).then((user) => {
-        if (!user) return res.clearCookie('auth').status(404).json({redirect: '/'})
+        if (!user) return HTTP.SendHTTP(req, res, 404, {redirect: '/'}, {clearCookie: 'auth'})
 
         console.log('Initiating file upload...')
 
@@ -80,7 +81,7 @@ userController.post('/file', upload.single('file'), (req, res) => {
 
         fs.mkdirSync(folderPath);
 
-        const uploader = new Uploader(folderPath, Math.ceil(req.file.size / chunkSize), res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
+        const uploader = new Uploader(folderPath, Math.ceil(req.file.size / chunkSize), req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
 
         let count = 0;
 
@@ -97,7 +98,7 @@ userController.post('/file', upload.single('file'), (req, res) => {
                 if (err) {
                     console.error('An error occurred:', err)
                     stream.close();
-                    res.status(500).send(String(err) || 'An unknown error occurred')
+                    return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred')
                 }
                 console.log('Written buffer', bufferCount, 'to disk.')
                 uploader.uploadChunk(bufferCount);
@@ -106,7 +107,7 @@ userController.post('/file', upload.single('file'), (req, res) => {
 
         stream.on('error', (err) => {
             console.error('An error occurred:', err)
-            res.status(500).send(String(err) || 'An unknown error occurred')
+            return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred')
         })
 
         stream.on('end', () => {
@@ -120,25 +121,25 @@ userController.post('/file', upload.single('file'), (req, res) => {
         })
     }).catch(error => {
         console.error('An error occurred while finding one user with id:', req.cookies.auth, '. The error was:', error)
-        res.status(500).send(String(error) || 'An unknown error occurred while finding user. Please try again.')
+        return HTTP.SendHTTP(req, res, 500, String (error) || 'An unknown error occurred while finding user. Please try again.')
     })
 })
 
 userController.get('/files', (req, res) => {
     UserModel.findOne({_id: {$eq: req.cookies.auth}}).lean().then(user => {
-        if (!user) return res.clearCookie('auth').status(404).json({redirect: '/'})
+        if (!user) return HTTP.SendHTTP(req, res, 404, {redirect: '/'}, {clearCookie: 'auth'})
 
         File.find({userId: {$eq: req.cookies.auth}}, 'fileName dateCreated fileSize').lean().then(files => {
-            if (files.length === 0) return res.json({files: []})
+            if (files.length === 0) return HTTP.SendHTTP(req, res, 200, {files: []})
     
-            res.json({files})
+            HTTP.SendHTTP(req, res, 200, {files})
         }).catch(error => {
             console.error('An error occurred while getting all Files with userId:', req.cookies.auth, '. The error was:', error)
-            res.status(500).send(String(error) || 'An unknown error occurred.')
+            HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.');
         })
     }).catch(error => {
         console.error('An error occurred while finding one user with id:', req.cookies.auth, '. THe error was:', error)
-        res.status(500).send(String(error) || 'An unknown error occurred while finding user. Please try again.')
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred while finding user. Please try again.')
     })
 })
 
@@ -148,20 +149,20 @@ userController.get('/file/:id', (req, res) => {
 
     console.log(fileId)
     if (!mongoose.isObjectIdOrHexString(fileId)) {
-        return res.status(400).send('fileId must be an ObjectId.')
+        return HTTP.SendHTTP(req, res, 400, 'fileId must be an ObjectId.');
     }
 
     UserModel.findOne({_id: {$eq: userId}}).then(user => {
-        if (!user) return res.clearCookie('auth').status(404).json({redirect: '/'})
+        if (!user) return HTTP.SendHTTP(req, res, 404, {redirect: '/'}, {clearCookie: 'auth'})
 
         console.log('Starting download for file:', fileId)
         File.findOne({_id: {$eq: fileId}}).lean().then(file => {
             if (!file) {
-                res.status(404).send('File not found')
+                return HTTP.SendHTTP(req, res, 404, 'File not found')
             }
 
             if (file.userId != req.cookies.auth) {
-                res.status(401).send('You are not allowed to access this resource.')
+                return HTTP.SendHTTP(req, res, 401, 'You are not allowed to access this resource.')
             }
 
             console.log('Initiating download...')
@@ -183,7 +184,7 @@ userController.get('/file/:id', (req, res) => {
                     if (err) {
                         console.error('Error creating folder with path:', newFolderPath, '. The error was:', err)
                         removeFileAction(userId, fileId, true);
-                        return res.status(500).send(String(err) || 'An unknown error occurred while creating temporary folder.')
+                        return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred while creating temporary folder. Please try again.');
                     }
 
                     console.log('Created temporary folder')
@@ -208,8 +209,7 @@ userController.get('/file/:id', (req, res) => {
                             console.error('An error occurred while reading file from filepath:', chunkFilepath, '. The error was:', err)
                             stream.close();
                             removeFileAction(userId, fileId, true);
-                            res.status(500).send(String(err) || 'An unknown error occurred while reading temporary files. Please try again.')
-                            break
+                            return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred while reading temporary files. Please try again');
                         }
 
                         try {
@@ -218,7 +218,7 @@ userController.get('/file/:id', (req, res) => {
                             console.error('An error occurred while writing to chunk stream. The error was:', error)
                             stream.close();
                             removeFileAction(userId, fileId, true);
-                            res.status(500).send(String(error) || 'An unknown error occurred while writing to temporary file. Please try again.')
+                            return HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred while writing to temporary file. Please try again.');
                         }
 
                         setFileActionText(userId, fileId, `Concatenated ${i}/${messageIdCount} chunks.`, i, messageIdCount);
@@ -234,7 +234,7 @@ userController.get('/file/:id', (req, res) => {
 
                     console.log('Sending downloaded file...')
                     removeFileAction(userId, fileId, false);
-                    res.download(downloadableFilePath, () => {
+                    HTTP.SendDownloadableFile(req, res, downloadableFilePath, () => {
                         Promise.all([
                             fsPromises.rm(folderPath, {recursive: true, force: true}),
                             fsPromises.rm(newFolderPath, {recursive: true, force: true})
@@ -247,15 +247,15 @@ userController.get('/file/:id', (req, res) => {
                 });
             }).catch(error => {
                 console.error('An error occurred while downloading Discord file:', error)
-                res.status(500).send(String(error) || 'An unknown error occurred.')
+                HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.')
             })
         }).catch(error => {
             console.error('An error occurred while finding a File with _id:', fileId, '. The error was:', error)
-            res.status(500).send(String(error) || 'An unknown error occurred.')
+            HTTP.SendHTTP(req, res, 500, String (error) || 'An unknown error occurred.')
         })
     }).catch(error => {
         console.error('An error occurred while finding one user with id:', req.cookies.auth, '. The error was:', error)
-        res.status(500).send(String(error) || 'An unknown error occurred while finding user. Please try again.')
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred while finding user. Please try again.');
     })
 })
 
@@ -264,29 +264,29 @@ userController.delete('/file/:id', (req, res) => {
     const userId = req.cookies.auth;
 
     if (!mongoose.isObjectIdOrHexString(fileId)) {
-        return res.status(400).send('fileId must be an ObjectId.')
+        return HTTP.SendHTTP(req, res, 400, 'fileId must be an ObjectId.')
     }
 
     UserModel.findOne({_id: {$eq: userId}}).lean().then(user => {
-        if (!user) return res.clearCookie('auth').status(404).json({redirect: '/'})
+        if (!user) return HTTP.SendHTTP(req, res, 404, {redirect: '/'}, {clearCookie: 'auth'});
 
         File.findOne({_id: {$eq: fileId}}).lean().then(file => {
-            if (!file) return res.send('Success') //The file does not exist. Since the user is trying to delete it, we may as well say it was a success
+            if (!file) return HTTP.SendHTTP(req, res, 200, 'File does not exist'); //The file does not exist. Since the user is trying to delete it, we may as well say it was a success
 
             File.deleteOne({_id: {$eq: fileId}}).then(() => {
                 DeleteFile(user._id, fileId, file.fileName, file.fileSize, file.messageIds).catch(() => {
                     //Errors are logged in the DeleteFile function so nothing is needed here.
                 }).finally(() => {
-                    res.status(200).send('Success')
+                    HTTP.SendHTTP(req, res, 200, 'Success');
                 })
             }).catch(error => {
                 console.error('An error occurred while deleting one file with id:', fileId, '. The error was:', error)
-                res.status(500).send(String(error) || 'An unknown error occurred while deleting the file. Please try again.')
+                HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred while deleting the file. Please try again.');
             })
         })
     }).catch(error => {
         console.error('An error occurred while finding one user with id:', userId, '. The error was:', error)
-        res.status(500).send(String(error) || 'An unknown error occurred.')
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.');
     })
 })
 

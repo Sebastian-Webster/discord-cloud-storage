@@ -1,9 +1,10 @@
 import { Client, TextChannel } from "discord.js";
-import { Response } from "express";
+import { Request, Response } from "express";
 import File from "../models/File";
 import mongoose from "mongoose";
 import fs from 'fs';
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
+import HTTP from "./HTTP";
 
 
 export default class Uploader {
@@ -16,6 +17,7 @@ export default class Uploader {
     #sentHTTPHeaders = false;
 
     #folderpath: string;
+    #req: Request
     #res: Response;
     #chunksToUpload: number;
     #channel: TextChannel;
@@ -25,7 +27,7 @@ export default class Uploader {
     #fileSize: number;
     #fileId: string;
 
-    constructor(folderpath: string, chunks: number, res: Response, userId: mongoose.Types.ObjectId, filename: string, fileSize: number, fileId: string) {
+    constructor(folderpath: string, chunks: number, req: Request, res: Response, userId: mongoose.Types.ObjectId, filename: string, fileSize: number, fileId: string) {
         this.#folderpath = folderpath;
         this.#res = res;
         this.#chunksToUpload = chunks;
@@ -33,6 +35,7 @@ export default class Uploader {
         this.#filename = filename;
         this.#fileSize = fileSize;
         this.#fileId = fileId;
+        this.#req = req;
 
         startFileAction(String(this.#userId), this.#fileId, this.#filename, this.#fileSize, `Connecting to Discord...`, 'Upload', -1, -1);
 
@@ -56,7 +59,7 @@ export default class Uploader {
     #sendHTTP(status: number, message: string) {
         if (!this.#sentHTTPHeaders) {
             this.#sentHTTPHeaders = true;
-            this.#res.status(status).send(message)
+            HTTP.SendHTTP(this.#req, this.#res, status, message)
             const error = status < 200 || status > 299;
             removeFileAction(String(this.#userId), this.#fileId, error);
         }

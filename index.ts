@@ -1,5 +1,7 @@
 /// <reference path="./types/index.d.ts" />
 
+const timeoutTime = 24 * 60 * 60 * 1000; //1 day in millseconds
+
 import mongoose from 'mongoose';
 import express, {Request, Response} from 'express';
 import UserLibrary from './libraries/User';
@@ -14,6 +16,7 @@ import fs from 'fs';
 
 import { config } from 'dotenv';
 import { validateSocketAuth } from './middleware/SocketAuth';
+import HTTP from './libraries/HTTP';
 config()
 
 const app = express();
@@ -35,6 +38,9 @@ if (process.env.NoHTTPS) {
     server = https.createServer(options, app)
 }
 
+server.timeout = timeoutTime;
+server.headersTimeout = timeoutTime;
+
 const io = new Server(server)
 
 app.use(cookieParser(process.env.cookieSecret))
@@ -45,9 +51,9 @@ app.use('/auth', userController)
 function sendMainHTML(req: Request, res: Response) {
     console.log(req.cookies)
     if ('auth' in req.cookies) {
-        res.sendFile(path.resolve('public/index.html'))
+        HTTP.SendFile(req, res, path.resolve('public/index.html'))
     } else {
-        res.redirect('/signin.html')
+        HTTP.redirect(req, res, '/signin.html')
     }
 }
 
@@ -67,28 +73,38 @@ app.post('/signup', async (req, res) => {
     const password = req.body.password;
     
     if (typeof username !== 'string') {
-        return res.status(400).send(`username must be a string. Type provided: ${typeof username}`)
+        return HTTP.SendHTTP(req, res, 400, `username must be a string. Type provided: ${typeof username}`)
     }
     
     if (typeof password !== 'string') {
-        return res.status(400).send(`password must be a string. Type provided: ${typeof password}`)
+        return HTTP.SendHTTP(req, res, 400, `password must be a string. Type provided: ${typeof password}`)
     }
     
     if (!/^[A-Za-z0-9]*$/.test(username)) {
-        return res.status(400).send('username must only contain numbers and lowercase letters.')
+        return HTTP.SendHTTP(req, res, 400, 'username must only contain numbers and lowercase letters.')
     }
     
     if (password.length < 8) {
-        return res.status(400).send('password must be more than 8 characters.')
+        return HTTP.SendHTTP(req, res, 400, 'password must be more than 8 characters.')
     }
     
     const result = await UserLibrary.createUser(username, password);
     
     if (isObjectId(result)) {
-        res.cookie('auth', result.toString(), {maxAge: oneYearMs}).status(200)
-        res.send('Success')
+        const options: SendHTTPOptions = {
+            setCookies: [
+                {
+                    name: 'auth',
+                    val: result.toString(),
+                    cookieOptions: {
+                        maxAge: oneYearMs
+                    }
+                }
+            ]
+        }
+        HTTP.SendHTTP(req, res, 200, 'Success', options);
     } else {
-        res.status(result.status).json(result.data)
+        HTTP.SendHTTP(req, res, result.status, result.data)
     }
 })
 
@@ -97,20 +113,30 @@ app.post('/login', async (req, res) => {
     const password = req.body.password;
     
     if (typeof username !== 'string') {
-        return res.status(400).send(`username must be a string. Type provided: ${typeof username}`)
+        return HTTP.SendHTTP(req, res, 400, `username must be a string. Type provided: ${typeof username}`);
     }
     
     if (typeof password !== 'string') {
-        return res.status(400).send(`password must be a string. Type provided: ${typeof password}`)
+        return HTTP.SendHTTP(req, res, 400, `password must be a string. Type provided: ${typeof password}`);
     }
     
     const result = await UserLibrary.signin(username, password);
     
     if (isObjectId(result)) {
-        res.cookie('auth', result.toString(), {maxAge: oneYearMs})
-        res.send('Success')
+        const options: SendHTTPOptions = {
+            setCookies: [
+                {
+                    name: 'auth',
+                    val: result.toString(),
+                    cookieOptions: {
+                        maxAge: oneYearMs
+                    }
+                }
+            ]
+        }
+        HTTP.SendHTTP(req, res, 200, 'Success', options)
     } else {
-        res.status(result.status).json(result.data)
+        HTTP.SendHTTP(req, res, result.status, result.data)
     }
 })
 
