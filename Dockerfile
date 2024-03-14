@@ -1,12 +1,16 @@
 FROM node:20
 WORKDIR /server
 
-RUN npm install -g ts-node
 COPY ./package-lock.json .
 COPY ./package.json .
 RUN npm ci --omit dev
 
 COPY . .
+
+RUN npx tsc --build
+RUN find . -name "*.ts" -type f -delete
+RUN find . -name "*.d.ts" -type f -delete
+
 EXPOSE 25565
 RUN mkdir /temp
-CMD ["npm", "start"]
+CMD ["node", "index.js"]
