@@ -144,17 +144,21 @@ function createBeforeFilesContainer() {
     return beforeFilesContainer;
 }
 
+function changeFileActionToError(fileId) {
+    const fileAction = document.getElementById(`file-action-${fileId}`)
+    fileAction.querySelector('.file-action-container').remove();
+
+    const errorItem = document.getElementById('file-action-error-template').content.cloneNode(true);
+    errorItem.id = `file-action-${fileId}`
+    errorItem.querySelector('.file-action-error-ok-text').setAttribute('onclick', `removeFileActionFromList('${fileId}')`)
+
+    fileAction.appendChild(errorItem)
+}
+
 socket.on('remove-file-action', (data) => {
     console.log('Removed file action:', data)
     if (data.error) {
-        const fileAction = document.getElementById(`file-action-${data.fileId}`)
-        fileAction.querySelector('.file-action-container').remove();
-
-        const errorItem = document.getElementById('file-action-error-template').content.cloneNode(true);
-        errorItem.id = `file-action-${data.fileId}`
-        errorItem.querySelector('.file-action-error-ok-text').setAttribute('onclick', `removeFileActionFromList('${data.fileId}')`)
-
-        fileAction.appendChild(errorItem)
+        changeFileActionToError(data.fileId)
         return
     }
 
@@ -239,7 +243,7 @@ function uploadFile(e) {
 
     axios.post('/auth/file', formData, {onUploadProgress: onUploadProgress(fileId)}).catch(error => {
         console.error(error)
-        alert('An error occurred.')
+        changeFileActionToError(fileId)
     })
 }
 
