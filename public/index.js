@@ -20,6 +20,7 @@ const fileTemplate = document.getElementById('file-template');
 const fileActionErrorTemplate = document.getElementById('file-action-error-template');
 const lostConnectionDiv = document.getElementById('lost-connection');
 const socketReconnectButton = document.getElementById('socket-reconnect');
+const pulsatingAnimation = 'pulsating 1.5s infinite'
 
 function showFileActions() {
     if (fileActionsShowing === false) {
@@ -82,7 +83,7 @@ function createActionDiv(action) {
 
     const progressBar = actionDiv.querySelector('.progress-bar');
     if (action.currentChunk === -1 && action.chunkCount === -1) {
-        progressBar.style.animation = 'pulsating 1.5s infinite';
+        progressBar.style.animation = pulsatingAnimation;
         progressBar.style.width = '100%'
     } else {
         progressBar.style.animation = 'none';
@@ -123,7 +124,7 @@ socket.on('file-action', (action) => {
         progressBar.style.width = `${action.currentChunk / action.chunkCount * 100}%`
 
         if (action.currentChunk === -1 && action.chunkCount === -1) {
-            progressBar.style.animation = 'pulsating 1.5s infinite';
+            progressBar.style.animation = pulsatingAnimation;
         } else {
             progressBar.style.animation = 'none';
         }
@@ -210,12 +211,13 @@ function onUploadProgress(fileId) {
         if (progressEvent.progress === 1) {
             progressBarText.textContent = 'Waiting for server...';
             progressBar.style.width = '100%';
-            progressBar.style.animation = 'pulsating 1.5s infinite';
+            progressBar.style.animation = pulsatingAnimation;
             return
         }
     
         console.log(progressEvent);
         progressBar.style.width = `${progressEvent.progress * 100}%`;
+        progressBar.style.animation = 'none'
         progressBarText.textContent = `${(progressEvent.progress * 100).toFixed(1)}% uploaded...`
     }
 }
@@ -224,8 +226,6 @@ document.getElementById('file-upload').addEventListener('change', uploadFile);
 function uploadFile(e) {
     e.preventDefault();
 
-    showFileActions();
-
     const formData = new FormData();
 
     const fileId = crypto.randomUUID()
@@ -233,11 +233,7 @@ function uploadFile(e) {
     formData.append('file', e.target.files[0])
     formData.append('fileId', fileId)
 
-    const actionDiv = document.getElementById('file-action-template').content.cloneNode(true);
-    actionDiv.querySelector('.file-action-filename').textContent = e.target.files[0].name;
-    actionDiv.querySelector('.file-action-item').id = `file-action-${fileId}`;
-
-    fileActionContainer.appendChild(actionDiv);
+    createFileAction(fileId, e.target.files[0].name, 'Starting upload...')
 
     document.getElementById('file-upload-form').reset();
 
@@ -278,7 +274,7 @@ function createFile(file) {
     fileElement.querySelector('.file').id = `file-${fileId}`
     fileElement.querySelector('.file-filename').textContent = file.fileName;
     fileElement.querySelector('.file-filesize').textContent = SizeCalculator(file.fileSize);
-    fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}')`)
+    fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${file.fileName}')`)
     fileElement.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${file.fileName}')`)
 
     fileList.appendChild(fileElement)
@@ -339,15 +335,32 @@ function getFiles() {
 }
 getFiles()
 
-function deleteFile(fileId) {
+function createFileAction(fileId, filename, progressBarText) {
+    showFileActions();
+    
+    const actionDiv = document.getElementById('file-action-template').content.cloneNode(true);
+    actionDiv.querySelector('.file-action-filename').textContent = filename;
+    actionDiv.querySelector('.file-action-item').id = `file-action-${fileId}`;
+    actionDiv.querySelector('.progress-bar-text').textContent = progressBarText;
+
+    const progressBar = actionDiv.querySelector('.progress-bar');
+    progressBar.style.width = '100%';
+    progressBar.style.animation = pulsatingAnimation;
+
+    fileActionContainer.appendChild(actionDiv);
+}
+
+function deleteFile(fileId, fileName) {
     console.log('Delete file has been called with fileId:', fileId)
+    createFileAction(fileId, fileName, 'Waiting for server...')
     axios.delete(`/auth/file/${fileId}`).catch(error => {
         console.error(error)
-        alert('An error occurred while deleting file. Please try again.')
+        changeFileActionToError(fileId)
     })
 }
 
 function downloadFile(fileId, fileName) {
+    createFileAction(fileId, fileName, 'Waiting for server...')
     axios.get(`/auth/file/${fileId}`, {responseType: 'blob'}).then(response => {
         const href = URL.createObjectURL(response.data);
         const a = document.createElement('a');
@@ -358,7 +371,7 @@ function downloadFile(fileId, fileName) {
         URL.revokeObjectURL(href)
     }).catch(error => {
         console.error('Error downloading file:', error)
-        alert('An error occurred while downloading file. Please try again.')
+        changeFileActionToError(fileId)
     })
 }
 
