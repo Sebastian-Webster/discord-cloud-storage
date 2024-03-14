@@ -1,3 +1,5 @@
+import { Errback, Request, Response } from "express"
+
 export default class HTTP {
     static ServerError(message: string): IHTTPServerError {
         return {
@@ -42,5 +44,53 @@ export default class HTTP {
                 message
             }
         }
+    }
+
+    static #CanSendHTTP(req: Request, res: Response): boolean {
+        if (res.headersSent) {
+            console.log('Returning early because headers have already been sent')
+            return false
+        }
+
+        return true
+    }
+
+    static SendHTTP(req: Request, res: Response, status: number, data: object | any[] | string, options?: SendHTTPOptions): void {
+        if (!this.#CanSendHTTP(req, res)) return
+
+        if (options?.clearCookie) {
+            res.clearCookie(options.clearCookie);
+        }
+
+        if (options?.setCookies) {
+            for (const cookie of options.setCookies) {
+                res.cookie(cookie.name, cookie.val, cookie.cookieOptions);
+            }
+        }
+
+        if (typeof data === 'object' && data !== null) {
+            res.status(status).json(data)
+            return
+        }
+
+        res.status(status).send(data)
+    }
+
+    static SendDownloadableFile(req: Request, res: Response, filePath: string, callback?: Errback): void {
+        if (!this.#CanSendHTTP(req, res)) return
+
+        res.download(filePath, callback)
+    }
+
+    static SendFile(req: Request, res: Response, filePath: string): void {
+        if (!this.#CanSendHTTP(req, res)) return
+
+        res.sendFile(filePath)
+    }
+
+    static redirect(req: Request, res: Response, path: string): void {
+        if (!this.#CanSendHTTP(req, res)) return
+
+        res.redirect(path);
     }
 }
