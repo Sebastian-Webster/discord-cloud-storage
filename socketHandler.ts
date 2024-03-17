@@ -88,3 +88,13 @@ export function removeFileAction(userId: string, fileId: string, error: boolean)
         socket?.emit('remove-file-action', toSend);
     }
 }
+
+export function fileActionAlreadyOccurring(userId: string, fileId: string): boolean {
+    const fileActions = fileActionMap.get(userId);
+
+    if (!fileActions) return false;
+
+    const actionIndex = fileActions.findIndex(action => action.fileId === fileId);
+
+    return actionIndex !== -1;
+}
