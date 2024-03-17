@@ -15,7 +15,7 @@ import UserModel from "../models/User";
 import { DeleteFile } from "../libraries/Deleter";
 import mongoose from "mongoose";
 import { validateUUIDV4 } from "../libraries/UUID";
-import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
+import { fileActionAlreadyOccurring, removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
 import HTTP from "../libraries/HTTP";
 
 const userController = Router()
@@ -152,6 +152,10 @@ userController.get('/file/:id', (req, res) => {
         return HTTP.SendHTTP(req, res, 400, 'fileId must be an ObjectId.');
     }
 
+    if (fileActionAlreadyOccurring(userId, fileId)) {
+        return HTTP.SendHTTP(req, res, 409, 'File action is already occurring. Please wait.')
+    }
+
     UserModel.findOne({_id: {$eq: userId}}).then(user => {
         if (!user) return HTTP.SendHTTP(req, res, 404, {redirect: '/'}, {clearCookie: 'auth'})
 
@@ -265,6 +269,10 @@ userController.delete('/file/:id', (req, res) => {
 
     if (!mongoose.isObjectIdOrHexString(fileId)) {
         return HTTP.SendHTTP(req, res, 400, 'fileId must be an ObjectId.')
+    }
+
+    if (fileActionAlreadyOccurring(userId, fileId)) {
+        return HTTP.SendHTTP(req, res, 409, 'File action is already occurring. Please wait.')
     }
 
     UserModel.findOne({_id: {$eq: userId}}).lean().then(user => {
