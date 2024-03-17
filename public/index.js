@@ -351,7 +351,8 @@ function createFileAction(fileId, filename, progressBarText) {
 }
 
 function deleteFile(fileId, fileName) {
-    console.log('Delete file has been called with fileId:', fileId)
+    if (document.getElementById(`file-action-${fileId}`)) return
+
     createFileAction(fileId, fileName, 'Waiting for server...')
     axios.delete(`/auth/file/${fileId}`).catch(error => {
         console.error(error)
@@ -360,6 +361,8 @@ function deleteFile(fileId, fileName) {
 }
 
 function downloadFile(fileId, fileName) {
+    if (document.getElementById(`file-action-${fileId}`)) return
+    
     createFileAction(fileId, fileName, 'Waiting for server...')
     axios.get(`/auth/file/${fileId}`, {responseType: 'blob'}).then(response => {
         const href = URL.createObjectURL(response.data);
