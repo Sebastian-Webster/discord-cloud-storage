@@ -122,6 +122,16 @@ main {
     width: 50%;
 }
 
+.file-filename-and-context-menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-context-button {
+    cursor: pointer;
+}
+
 .file-filename {
     text-overflow: ellipsis;
     overflow: hidden;

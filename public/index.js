@@ -276,8 +276,13 @@ function createFile(file) {
     fileElement.querySelector('.file-filesize').textContent = SizeCalculator(file.fileSize);
     fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${file.fileName}')`)
     fileElement.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${file.fileName}')`)
+    fileElement.querySelector('.file-context-button').setAttribute('onclick', `openContextMenu('${fileId}', '${file.fileName}')`)
 
     fileList.appendChild(fileElement)
+}
+
+function openContextMenu(fileId, fileName) {
+    console.log(document.getElementById(`file-${fileId}`).getBoundingClientRect())
 }
 
 function retryGettingFiles() {
