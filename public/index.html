@@ -8,24 +8,27 @@
         <noscript>
             <h1>This website requires JavaScript enabled in your browser to work. Please enable JavaScript in your browser and then reload the page for this warning to go away.</h1>
         </noscript>
+        <template id="file-menu-template">
+            <div class="file-context-menu">
+                <div class="file-context-item file-download-button">
+                    <h3 class="ant-design">&#xE6B7</h3>
+                    <h5>Download</h5>
+                </div>
+                <div class="file-context-item file-delete-button">
+                    <h3 class="ant-design">&#xE69F</h3>
+                    <h5>Delete</h5>
+                </div>
+            </div>
+        </template>
+
         <template id="file-template">
             <div class="file">
                 <div>
                     <div class="file-filename-and-context-menu">
                         <h4 class="file-filename">Filename</h4>
-                        <h3 class="file-context-button ant-design">&#xE647</h3>
+                        <h3 class="file-context-button ant-design clickable-when-blocked">&#xE647</h3>
                     </div>
-                    <div class="file-metadata-and-download">
-                        <div>
-                            <p class="file-filesize">File Size</p>
-                        </div>
-                        <button class="file-download-button">
-                            <h5 class="ant-design">&#xE6B7</h5>
-                        </button>
-                        <button class="file-delete-button">
-                            <h5 class="ant-design">&#xE69F</h5>
-                        </button>
-                    </div>
+                    <p class="file-filesize">File Size</p>
                 </div>
             </div>
         </template>
@@ -47,11 +50,13 @@
             </div>
         </template>
 
+        
+        <div id="file-context-screen-blocker" onclick="closeFileContextMenu()"></div>
 
 
         <nav>
             <h1>File Storage</h1>
-            <label for="file-upload" id="add-file-button">&#xE627</label>
+            <label for="file-upload" id="add-file-button" class="clickable-when-blocked">&#xE627</label>
         </nav>
         <main>
             <form id="file-upload-form">
@@ -60,7 +65,7 @@
             <div id="before-files-container">
                 <h1>Loading files...</h1>
             </div>
-            <div id="lost-connection" class="invisible"><b>Lost Connection To Server</b><p id="socket-reconnect" onclick="manualSocketConnect()">Try Reconnecting</p></div>
+            <div id="lost-connection" class="invisible"><b>Lost Connection To Server</b><p id="socket-reconnect" class="clickable-when-blocked" onclick="manualSocketConnect()">Try Reconnecting</p></div>
             <div id="files-list"></div>
             <div id="action-progress" class="invisible">
                 <div id="action-progress-header">
