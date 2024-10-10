@@ -290,6 +290,7 @@ function openContextMenu(fileId, fileName) {
     const div = box.querySelector('.file-context-menu');
     div.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${fileName}')`)
     div.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${fileName}')`)
+    div.querySelector('.file-share-button').setAttribute('onclick', `openShareBox('${fileId}', '${fileName}')`)
     div.style.top = `${boundingRect.top}px`;
     div.style.left = `${boundingRect.right}px`;
     document.body.append(box)
@@ -400,6 +401,10 @@ function downloadFile(fileId, fileName) {
         console.error('Error downloading file:', error)
         changeFileActionToError(fileId)
     })
+}
+
+function openShareBox(fileId, fileName) {
+    closeFileContextMenu()
 }
 
 function changeSocketReconnectText(reconnecting) {

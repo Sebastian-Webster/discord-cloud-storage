@@ -298,4 +298,18 @@ userController.delete('/file/:id', (req, res) => {
     })
 })
 
+userController.get('/users/:username', (req, res) => {
+    //User pagination has purposefully not been added because I think it is unneccesary
+    //The user could just type a more accurate username instead of searching through a long list of users
+
+    const username = req.params.username;
+
+    UserModel.find({$regex: `^${username}`, $options: 'i'}).limit(10).then(users => {
+        HTTP.SendHTTP(req, res, 200, users);
+    }).catch(error => {
+        console.error('An error occurred while finding users with username:', username, '. The error was:', error)
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An error occurred while finding users. Please try again')
+    })
+})
+
 export default userController;
