@@ -315,6 +315,8 @@ function getFiles() {
         if (data.files.length === 0) {
             const container = createBeforeFilesContainer();
 
+            document.getElementById('storage-usage').textContent = 'None'
+
             const text = document.createElement('h1');
             text.textContent = 'No files. Press the + button to upload something!'
             container.appendChild(text);
@@ -324,6 +326,8 @@ function getFiles() {
         document.getElementById('before-files-container')?.remove();
 
         removeChildrenFromElement(document.getElementById('files-list'));
+
+        document.getElementById('storage-usage').textContent = SizeCalculator(data.storageBytesUsed);
 
         for (const file of data.files) {
             createFile(file)
