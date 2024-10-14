@@ -131,8 +131,13 @@ userController.get('/files', (req, res) => {
 
         File.find({userId: {$eq: req.cookies.auth}}, 'fileName dateCreated fileSize').lean().then(files => {
             if (files.length === 0) return HTTP.SendHTTP(req, res, 200, {files: []})
+
+            let storageBytesUsed = 0;
+            for (let i = 0; i < files.length; i++) {
+                storageBytesUsed += files[i].fileSize
+            }
     
-            HTTP.SendHTTP(req, res, 200, {files})
+            HTTP.SendHTTP(req, res, 200, {files, storageBytesUsed})
         }).catch(error => {
             console.error('An error occurred while getting all Files with userId:', req.cookies.auth, '. The error was:', error)
             HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.');
