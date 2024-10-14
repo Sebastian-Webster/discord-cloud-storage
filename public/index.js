@@ -20,7 +20,8 @@ const fileTemplate = document.getElementById('file-template');
 const fileActionErrorTemplate = document.getElementById('file-action-error-template');
 const lostConnectionDiv = document.getElementById('lost-connection');
 const socketReconnectButton = document.getElementById('socket-reconnect');
-const pulsatingAnimation = 'pulsating 1.5s infinite'
+const pulsatingAnimation = 'pulsating 1.5s infinite';
+const fileContextScreenBlocker = document.getElementById('file-context-screen-blocker');
 
 function showFileActions() {
     if (fileActionsShowing === false) {
@@ -274,10 +275,30 @@ function createFile(file) {
     fileElement.querySelector('.file').id = `file-${fileId}`
     fileElement.querySelector('.file-filename').textContent = file.fileName;
     fileElement.querySelector('.file-filesize').textContent = SizeCalculator(file.fileSize);
-    fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${file.fileName}')`)
-    fileElement.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${file.fileName}')`)
+    fileElement.querySelector('.file-context-button').setAttribute('onclick', `openContextMenu('${fileId}', '${file.fileName}')`)
 
     fileList.appendChild(fileElement)
+}
+
+function openContextMenu(fileId, fileName) {
+    document.querySelector('.file-context-menu')?.remove();
+    fileContextScreenBlocker.style.display = 'block';
+
+    const boundingRect = document.getElementById(`file-${fileId}`).querySelector('div').getBoundingClientRect()
+    console.log(boundingRect);
+    const box = document.getElementById('file-menu-template').content.cloneNode(true);
+    const div = box.querySelector('.file-context-menu');
+    div.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${fileName}')`)
+    div.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${fileName}')`)
+    div.querySelector('.file-share-button').setAttribute('onclick', `openShareBox('${fileId}', '${fileName}')`)
+    div.style.top = `${boundingRect.top}px`;
+    div.style.left = `${boundingRect.right}px`;
+    document.body.append(box)
+}
+
+function closeFileContextMenu() {
+    document.querySelector('.file-context-menu')?.remove();
+    fileContextScreenBlocker.style.display = 'none';
 }
 
 function retryGettingFiles() {
@@ -357,6 +378,8 @@ function createFileAction(fileId, filename, progressBarText) {
 function deleteFile(fileId, fileName) {
     if (document.getElementById(`file-action-${fileId}`)) return
 
+    closeFileContextMenu()
+
     createFileAction(fileId, fileName, 'Waiting for server...')
     axios.delete(`/auth/file/${fileId}`).catch(error => {
         console.error(error)
@@ -366,6 +389,8 @@ function deleteFile(fileId, fileName) {
 
 function downloadFile(fileId, fileName) {
     if (document.getElementById(`file-action-${fileId}`)) return
+    
+    closeFileContextMenu()
     
     createFileAction(fileId, fileName, 'Waiting for server...')
     axios.get(`/auth/file/${fileId}`, {responseType: 'blob'}).then(response => {
@@ -380,6 +405,10 @@ function downloadFile(fileId, fileName) {
         console.error('Error downloading file:', error)
         changeFileActionToError(fileId)
     })
+}
+
+function openShareBox(fileId, fileName) {
+    closeFileContextMenu()
 }
 
 function changeSocketReconnectText(reconnecting) {
