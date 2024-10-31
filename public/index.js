@@ -22,6 +22,7 @@ const lostConnectionDiv = document.getElementById('lost-connection');
 const socketReconnectButton = document.getElementById('socket-reconnect');
 const pulsatingAnimation = 'pulsating 1.5s infinite';
 const fileContextScreenBlocker = document.getElementById('file-context-screen-blocker');
+const fileShareTemplate = document.getElementById('file-share-template');
 
 function showFileActions() {
     if (fileActionsShowing === false) {
@@ -409,6 +410,12 @@ function downloadFile(fileId, fileName) {
 
 function openShareBox(fileId, fileName) {
     closeFileContextMenu()
+    const fileShareContainer = fileShareTemplate.content.cloneNode(true);
+    document.body.appendChild(fileShareContainer)
+}
+
+function closeShareBox() {
+    document.getElementById('file-share-outer-container').remove()
 }
 
 function changeSocketReconnectText(reconnecting) {

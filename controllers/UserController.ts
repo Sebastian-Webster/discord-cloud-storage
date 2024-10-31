@@ -304,7 +304,7 @@ userController.delete('/file/:id', (req, res) => {
 })
 
 userController.get('/users/:username', (req, res) => {
-    //User pagination has purposefully not been added because I think it is unneccesary
+    //User pagination has purposefully not been added because I think it is unneccesary as I'll only have few people use this
     //The user could just type a more accurate username instead of searching through a long list of users
 
     const username = req.params.username;
