@@ -9,6 +9,11 @@ const userSchema = new mongoose.Schema<IUserSchema>({
     password: {
         type: String,
         required: true
+    },
+    secondId: {
+        type: String,
+        required: true,
+        unique: true
     }
 })
 
