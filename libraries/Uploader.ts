@@ -105,7 +105,8 @@ export default class Uploader {
                 messageIds: this.#messageIds,
                 fileName: this.#filename,
                 dateCreated: Date.now(),
-                fileSize: this.#fileSize
+                fileSize: this.#fileSize,
+                sharedWith: []
             })
 
             newFile.save().then(() => {
