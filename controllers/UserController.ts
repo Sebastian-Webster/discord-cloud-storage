@@ -308,8 +308,9 @@ userController.get('/users/:username', (req, res) => {
     //The user could just type a more accurate username instead of searching through a long list of users
 
     const username = req.params.username;
+    const userId = req.cookies.auth;
 
-    UserModel.find({$regex: `^${username}`, $options: 'i'}).limit(10).then(users => {
+    UserModel.find({_id: {$ne: userId}, username: {$regex: `^${username}`, $options: 'i'}}, 'secondId username').limit(10).then(users => {
         HTTP.SendHTTP(req, res, 200, users);
     }).catch(error => {
         console.error('An error occurred while finding users with username:', username, '. The error was:', error)
