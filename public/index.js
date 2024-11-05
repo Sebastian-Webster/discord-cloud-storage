@@ -23,6 +23,7 @@ const socketReconnectButton = document.getElementById('socket-reconnect');
 const pulsatingAnimation = 'pulsating 1.5s infinite';
 const fileContextScreenBlocker = document.getElementById('file-context-screen-blocker');
 const fileShareTemplate = document.getElementById('file-share-template');
+const fileShareUserTemplate = document.getElementById('file-share-user-template');
 
 function showFileActions() {
     if (fileActionsShowing === false) {
@@ -411,7 +412,46 @@ function downloadFile(fileId, fileName) {
 function openShareBox(fileId, fileName) {
     closeFileContextMenu()
     const fileShareContainer = fileShareTemplate.content.cloneNode(true);
+    fileShareContainer.getElementById('file-share-file-name').textContent = fileName;
     document.body.appendChild(fileShareContainer)
+
+    getSharedWith(fileId);
+}
+
+function getSharedWith(fileId) {
+    const container = document.getElementById('file-share-file-shared-with-container')
+
+    axios.get(`/auth/file/sharedwith/${fileId}`).then(response => {
+        const sharedWith = response.data;
+
+        if (!Array.isArray(sharedWith)) {
+            container.style.overflowX = 'hidden';
+            container.style.overflowY = 'auto';
+            container.innerHTML = '<b style="text-align: center; color: red">sharedWith is not an array. This is an error.</b>';
+        } else if (sharedWith.length === 0) {
+            container.style.overflowX = 'hidden';
+            container.style.overflowY = 'auto';
+            container.innerHTML = '<b style="text-align: center">This has file been shared with no one.</b>'
+        } else {
+            container.innerHTML = '';
+            container.style.justifyContent = 'flex-start';
+            for (const user of sharedWith) {
+                const userItem = fileShareUserTemplate.content.cloneNode(true);
+                const userContainer = userItem.querySelector('.file-share-user');
+                const id = `file-share-user-second-id-${user.secondId}`;
+
+                userContainer.id = id;
+                userContainer.querySelector('.file-share-user-x').setAttribute('onclick', `document.getElementById(${id}).remove()`);
+                userContainer.querySelector('.file-share-user-username').textContent = user.username;
+                container.appendChild(userContainer);
+            }
+        }
+    }).catch(error => {
+        console.error('An error occurred while getting users that this file is shared with. The error was:', error)
+        container.style.overflowX = 'hidden';
+        container.style.overflowY = 'auto';
+        container.innerHTML = `<b style="text-align: center; color: red;">${error?.response?.data || 'An error occurred. Please check the browser console for details.'}</b>`
+    })
 }
 
 function closeShareBox() {

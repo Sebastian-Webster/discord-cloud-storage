@@ -329,10 +329,10 @@ userController.get('/file/sharedwith/:fileId', (req, res) => {
     UserModel.findOne({_id: {$eq: userId}}, 'secondId').lean().then(user => {
         if (!user) return HTTP.SendHTTP(req, res, 400, {redirect: '/'}, {clearCookie: 'auth'})
 
-        File.findOne({_id: {$eq: fileId}}, 'sharedWith').lean().then(file => {
+        File.findOne({_id: {$eq: fileId}}, 'sharedWith userId').lean().then(file => {
             if (!file) return HTTP.SendHTTP(req, res, 404, 'File could not be found.')
 
-            if (!file.sharedWith.includes(user.secondId)) return HTTP.SendHTTP(req, res, 403, 'This file is not shared with you.')
+            if (String(file.userId) !== userId && !file.sharedWith.includes(user.secondId)) return HTTP.SendHTTP(req, res, 403, 'This file is not shared with you.')
 
             if (!Array.isArray(file.sharedWith) || file.sharedWith.length === 0) return HTTP.SendHTTP(req, res, 200, [])
 

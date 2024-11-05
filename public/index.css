@@ -340,4 +340,38 @@ label {
     border-radius: 20px;
     background-color: white;
     padding: 10px 20px;
+    width: min(80vw, 500px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#file-share-file-shared-with-container {
+    overflow-x: scroll;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.file-share-user-x {
+    font-family: "AntDesign";
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: smaller;
+}
+
+.file-share-user {
+    background-color: rgb(190, 190, 190);
+    border-radius: 10px;
+    padding: 5px 10px;
+}
+
+#file-share-user-username-input {
+    width: 100%;
+    border: 2px solid rgb(190, 190, 190);
+    border-radius: 10px;
+    margin-top: 10px;
+    padding: 5px;
 }

@@ -56,9 +56,18 @@
 
         <template id="file-share-template">
             <div id="file-share-outer-container" onclick="closeShareBox()">
-                <div id="file-share-inner-container">
-                    <h1>Hello World!</h1>
+                <div id="file-share-inner-container" onclick="event.stopPropagation();">
+                    <b>Sharing file: <span id="file-share-file-name"></span></b>
+                    <p>Shared with:</p>
+                    <div id="file-share-file-shared-with-container"><b>Loading...</b></div>
+                    <input id="file-share-user-username-input" placeholder="Search Users by Username" type="text"/>
                 </div>
+            </div>
+        </template>
+
+        <template id="file-share-user-template">
+            <div class="file-share-user">
+                <span class="file-share-user-username"></span><span class="file-share-user-x">&#xE62F</span>
             </div>
         </template>
 
