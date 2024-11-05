@@ -9,8 +9,7 @@ import cookieParser from 'cookie-parser';
 import path from 'path';
 import userController from './controllers/UserController';
 import {Server} from 'socket.io';
-import http from 'http';
-import https from 'https';
+import spdy from 'spdy';
 import { handleSocketConnection, handleSocketDisconnect } from './socketHandler';
 import fs from 'fs';
 
@@ -21,10 +20,10 @@ config()
 
 const app = express();
 
-let server: http.Server | https.Server;
+let server: spdy.Server;
 
 if (process.env.NoHTTPS) {
-    server = http.createServer(app)
+    server = spdy.createServer(app)
 } else {
     const options = {
         key: fs.readFileSync('./ssl/private.key'),
@@ -35,7 +34,7 @@ if (process.env.NoHTTPS) {
         ]
     };
     
-    server = https.createServer(options, app)
+    server = spdy.createServer(options, app)
 }
 
 server.timeout = timeoutTime;
