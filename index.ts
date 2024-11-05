@@ -23,7 +23,14 @@ const app = express();
 let server: spdy.Server;
 
 if (process.env.NoHTTPS) {
-    server = spdy.createServer(app)
+    const options = {
+        spdy: {
+            plain: true,
+            ssl: false
+        }
+    }
+
+    server = spdy.createServer(options, app)
 } else {
     const options = {
         key: fs.readFileSync('./ssl/private.key'),
