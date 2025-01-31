@@ -1,4 +1,4 @@
-FROM node:22
+FROM node:23
 WORKDIR /server
 
 COPY ./package-lock.json .
