@@ -228,7 +228,7 @@ function uploadFile(e) {
 
     const formData = new FormData();
 
-    const fileId = crypto.randomUUID()
+    const fileId = uuid.v4();
 
     formData.append('file', e.target.files[0])
     formData.append('fileId', fileId)
