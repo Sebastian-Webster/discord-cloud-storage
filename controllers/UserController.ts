@@ -1,4 +1,4 @@
-const chunkSize = 9.5 * 1024 * 1024 //9.5MB - Discord limit is 10MB, so having each file 0.5MB less than the limit ensures the limit is never reached
+const chunkSize = 9 * 1024 * 1024 //9MB - Discord limit is 10MB, so having each file 1MB less than the limit ensures the limit is never reached
 
 import { Router } from "express";
 import { validateAuth } from "../middleware/HTTPAuth";
