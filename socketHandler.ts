@@ -56,7 +56,7 @@ export function startFileAction(userId: string, fileId: string, fileName: string
 export function setFileActionText(userId: string, fileId: string, text: string, currentChunk: number, chunkCount: number): void {
     const fileActions = fileActionMap.get(userId);
 
-    const action = fileActions.find(action => action.fileId === fileId)
+    const action = fileActions?.find(action => action.fileId === fileId)
 
     if (action) {
         action.text = text;
