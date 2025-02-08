@@ -11,7 +11,7 @@ import path from "path";
 
 
 export default class Uploader {
-    #concurrentLimit = 10;
+    #concurrentLimit = 25;
     #runningPromises = 0;
     #chunksUploaded = 0;
     #promiseQueue: number[] = [];
@@ -190,7 +190,7 @@ export default class Uploader {
                     } catch (e) {
                         console.error('An error occurred while deleting folderpath after all download retries have been exhausted. The error was:', e)
                     }
-                    
+
                     this.#sendHTTP(500, `Tried uploading ${this.#maxUploadRetries} times and all attempts failed. The upload has been aborted.`)
                     return
                 }
