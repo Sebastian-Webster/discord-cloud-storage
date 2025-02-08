@@ -134,7 +134,7 @@ export default class Uploader {
 
     #upload(chunkNumber: number): Promise<Message<true>['id']> {
         return new Promise((resolve, reject) => {
-            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.ts'), {
+            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
                 workerData: {
                     channel: this.#channel,
                     folderPath: this.#folderpath,
