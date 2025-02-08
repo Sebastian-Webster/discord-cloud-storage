@@ -1,10 +1,13 @@
-import { Client, TextChannel } from "discord.js";
+import { Client, Message, TextChannel } from "discord.js";
 import { Request, Response } from "express";
 import File from "../models/File";
 import mongoose from "mongoose";
 import fs from 'fs';
+import fsPromises from 'fs/promises'
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
 import HTTP from "./HTTP";
+import { Worker } from "worker_threads";
+import path from "path";
 
 
 export default class Uploader {
@@ -15,6 +18,8 @@ export default class Uploader {
     #clientReady = false;
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
+    #maxUploadRetries = 10;
+    #uploadWorkers: {[key: number]: Worker} = {}
 
     #folderpath: string;
     #req: Request
@@ -127,24 +132,72 @@ export default class Uploader {
         }
     }
 
-    #startUpload(chunkNumber: number) {
+    #upload(chunkNumber: number): Promise<Message<true>['id']> {
+        return new Promise((resolve, reject) => {
+            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.ts'), {
+                workerData: {
+                    channel: this.#channel,
+                    folderPath: this.#folderpath,
+                    chunkNumber
+                }
+            })
+            this.#uploadWorkers[chunkNumber] = uploadWorker
+
+            uploadWorker.on('message', (messageId: Message<true>['id']) => {
+                delete this.#uploadWorkers[chunkNumber]
+                resolve(messageId)
+            })
+
+            uploadWorker.on('error', (err) => {
+                delete this.#uploadWorkers[chunkNumber]
+                reject(err)
+            })
+        })
+    }
+
+    async #startUpload(chunkNumber: number) {
         this.#runningPromises++
+
+        let uploadRetryCount = 0
 
         console.log('Starting upload for chunk:', chunkNumber)
 
-        this.#channel.send({
-            files: [{
-                attachment: `${this.#folderpath}/${chunkNumber}`,
-                name: `${chunkNumber}`,
-                description: 'A cool file'
-            }]
-        }).then((message) => {
-            this.#messageIds[chunkNumber - 1] = message.id;
+        do {
+            uploadRetryCount++
+
+            let messageId: Message<true>['id']
+
+            try {
+                messageId = await this.#upload(chunkNumber)
+            } catch (e) {
+                console.error('An error occurred while sending a message file:', e)
+
+                if (uploadRetryCount <= this.#maxUploadRetries) {
+                    console.warn('Retrying upload:', uploadRetryCount, '/', this.#maxUploadRetries)
+                    continue
+                } else {
+                    console.error('Exceeded upload retries. Aborting.')
+                    this.#clientReady = false
+
+                    try {
+                        await Promise.all(Object.values(this.#uploadWorkers).map(worker => worker.terminate()))
+                    } catch (e) {
+                        console.error('An error occurred while terminating worker processes after an upload abortion after exhaustion of all upload retries. The error was:', e)
+                    }
+
+                    try {
+                        await fsPromises.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50})
+                    } catch (e) {
+                        console.error('An error occurred while deleting folderpath after all download retries have been exhausted. The error was:', e)
+                    }
+                    
+                    this.#sendHTTP(500, `Tried uploading ${this.#maxUploadRetries} times and all attempts failed. The upload has been aborted.`)
+                    return
+                }
+            }
+
+            this.#messageIds[chunkNumber - 1] = messageId;
             this.#handleFinishUpload()
-        }).catch(error => {
-            console.error('An error occurred while sending a message file:', error)
-            this.#clientReady = false
-            this.#sendHTTP(500, String(error) || 'An unknown error occurred. Please try again.')
-        })
+        } while (uploadRetryCount <= this.#maxUploadRetries)
     }
 }
