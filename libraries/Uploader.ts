@@ -19,7 +19,7 @@ export default class Uploader {
     #sentHTTPHeaders = false;
     #maxUploadRetries = 10;
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
-    #uploadRetries: {[chunkNumber: number]: number}
+    #uploadRetries: {[chunkNumber: number]: number} = {}
 
     #folderpath: string;
     #req: Request
