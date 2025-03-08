@@ -94,4 +94,9 @@ declare global {
         clearCookie?: string,
         setCookies?: HTTPCookie[]
     }
+
+    type UploadWorkerEvent =
+        | {event: 'READY' | 'FAILED_GETTING_READY', messageId?: never, chunkId?: never}
+        | {event: 'MESSAGE_SENT', messageId: string, chunkId: number}
+        | {event: 'FAILED_SENDING_MESSAGE', messageId?: never, chunkId: number}
 }

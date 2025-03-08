@@ -15,18 +15,15 @@ export default class Uploader {
     #runningPromises = 0;
     #chunksUploaded = 0;
     #promiseQueue: number[] = [];
-    #clientReady = false;
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
     #maxUploadRetries = 10;
-    #uploadWorkers: {[key: number]: Worker} = {}
+    #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED', messageRetryAttempts: number}[] = []
 
     #folderpath: string;
     #req: Request
     #res: Response;
     #chunksToUpload: number;
-    #channel: TextChannel;
-    #client: Client;
     #userId: mongoose.Types.ObjectId;
     #filename: string;
     #fileSize: number;
@@ -44,25 +41,70 @@ export default class Uploader {
 
         startFileAction(String(this.#userId), this.#fileId, this.#filename, this.#fileSize, `Connecting to Discord...`, 'Upload', -1, -1);
 
-        this.#client = new Client({intents: []});
-        this.#client.on('ready', () => {
-            this.#setupUploader()
-        })
-        this.#client.on('error', (err) => {
-            this.#clientReady = false;
-            console.error(err)
-            this.#sendHTTP(500, String(err) || 'An unknown error occurred. Please try again.')
-        })
+        for (let i = 0; i < this.#concurrentLimit; i++) {
+            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
+                workerData: {
+                    folderPath: folderpath
+                }
+            })
 
-        this.#client.login(process.env.discordBotToken).catch(error => {
-            this.#clientReady = false;
-            console.error('Error logging into Discord uploader client:', error)
-            this.#sendHTTP(500, String(error) || 'An unknown error occurred while logging in to Discord. Please try again.')
+            this.#uploadWorkers.push({worker: uploadWorker, status: 'NOT_READY', messageRetryAttempts: 0})
+            
+            uploadWorker.on('message', (event: UploadWorkerEvent) => {
+                if (event.event === 'READY') {
+                    const worker = this.#uploadWorkers[i]
+                    if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
+                        worker.status = 'WORKING'
+                        worker.worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
+                    } else {
+                        worker.status = 'READY'
+                    }
+                }
+
+                if (event.event === 'FAILED_GETTING_READY') {
+                    uploadWorker.terminate();
+                    this.#uploadWorkers.splice(i, 1)
+                    if (this.#uploadWorkers.length === 0) {
+                        this.#sendHTTP(500, 'All upload workers failed to initialise.')
+                    }
+                }
+
+                if (event.event === 'FAILED_SENDING_MESSAGE') {
+                    this.#uploadWorkers[i].messageRetryAttempts++
+                    if (this.#uploadWorkers[i].messageRetryAttempts <= this.#maxUploadRetries) {
+                        this.uploadChunk(event.chunkId)
+                    } else {
+                        this.#cancelDueToError(`Failed to upload after ${this.#maxUploadRetries} tries.`)
+                    }
+                }
+
+                if (event.event === 'MESSAGE_SENT') {
+                    this.#messageIds[event.chunkId - 1] = event.messageId
+                    this.#handleFinishUpload()
+                    if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
+                        this.#uploadWorkers[i].worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
+                    } else {
+                        this.#uploadWorkers[i].status = 'READY'
+                    }
+                }
+            })
+        }
+    }
+
+    #terminateAllWorkers(): Promise<number[]> {
+        const promises = this.#uploadWorkers.map(worker => worker.worker.terminate());
+        return Promise.all(promises)
+    }
+
+    #cancelDueToError(err: string) {
+        this.#terminateAllWorkers().then(() => {
+            this.#sendHTTP(500, `An error occurred while uploading file. The error was: ${err}`)
         })
     }
 
     #sendHTTP(status: number, message: string) {
         if (!this.#sentHTTPHeaders) {
+            console.log('Setting HTTP with status:', status, 'and message:', message)
             this.#sentHTTPHeaders = true;
             HTTP.SendHTTP(this.#req, this.#res, status, message)
             const error = status < 200 || status > 299;
@@ -70,26 +112,11 @@ export default class Uploader {
         }
     }
 
-    async #setupUploader() {
-        setFileActionText(String(this.#userId), this.#fileId, 'Fetching Discord channel to upload data to...', -1, -1);
-        try {
-            this.#channel = await this.#client.channels.fetch(process.env.discordChannelId) as TextChannel
-        } catch (error) {
-            console.error('An error occurred while fetching Discord channel:', error)
-            this.#sendHTTP(500, String(error) || 'An unknown error occurred while fetching Discord channel data. Please try again.')
-        }
-        this.#clientReady = true;
-
-        setFileActionText(String(this.#userId), this.#fileId, `0/${this.#chunksToUpload} chunks uploaded.`, 0, this.#chunksToUpload);
-
-        for (const chunk of this.#promiseQueue.splice(0, this.#concurrentLimit)) {
-            this.#startUpload(chunk)
-        }
-    }
-
     uploadChunk(chunkNumber: number) {
-        if (this.#runningPromises < this.#concurrentLimit && this.#clientReady) {
-            this.#startUpload(chunkNumber)
+        const potentialWorker = this.#uploadWorkers.filter(worker => worker.status === 'READY')[0]
+        if (potentialWorker) {
+            potentialWorker.status = 'WORKING'
+            potentialWorker.worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
         } else {
             this.#promiseQueue.push(chunkNumber)
         }
@@ -124,80 +151,7 @@ export default class Uploader {
             }).catch(error => {
                 console.error('An error occurred while saving file to MongoDB:', error)
                 this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')
-            })
+            }).finally(this.#terminateAllWorkers)
         }
-
-        if (this.#chunksUploaded < this.#chunksToUpload && this.#clientReady && this.#promiseQueue.length > 0) {
-            this.#startUpload(this.#promiseQueue.splice(0, 1)[0])
-        }
-    }
-
-    #upload(chunkNumber: number): Promise<Message<true>['id']> {
-        return new Promise((resolve, reject) => {
-            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
-                workerData: {
-                    channel: this.#channel,
-                    folderPath: this.#folderpath,
-                    chunkNumber
-                }
-            })
-            this.#uploadWorkers[chunkNumber] = uploadWorker
-
-            uploadWorker.on('message', (messageId: Message<true>['id']) => {
-                delete this.#uploadWorkers[chunkNumber]
-                resolve(messageId)
-            })
-
-            uploadWorker.on('error', (err) => {
-                delete this.#uploadWorkers[chunkNumber]
-                reject(err)
-            })
-        })
-    }
-
-    async #startUpload(chunkNumber: number) {
-        this.#runningPromises++
-
-        let uploadRetryCount = 0
-
-        console.log('Starting upload for chunk:', chunkNumber)
-
-        do {
-            uploadRetryCount++
-
-            let messageId: Message<true>['id']
-
-            try {
-                messageId = await this.#upload(chunkNumber)
-            } catch (e) {
-                console.error('An error occurred while sending a message file:', e)
-
-                if (uploadRetryCount <= this.#maxUploadRetries) {
-                    console.warn('Retrying upload:', uploadRetryCount, '/', this.#maxUploadRetries)
-                    continue
-                } else {
-                    console.error('Exceeded upload retries. Aborting.')
-                    this.#clientReady = false
-
-                    try {
-                        await Promise.all(Object.values(this.#uploadWorkers).map(worker => worker.terminate()))
-                    } catch (e) {
-                        console.error('An error occurred while terminating worker processes after an upload abortion after exhaustion of all upload retries. The error was:', e)
-                    }
-
-                    try {
-                        await fsPromises.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50})
-                    } catch (e) {
-                        console.error('An error occurred while deleting folderpath after all download retries have been exhausted. The error was:', e)
-                    }
-
-                    this.#sendHTTP(500, `Tried uploading ${this.#maxUploadRetries} times and all attempts failed. The upload has been aborted.`)
-                    return
-                }
-            }
-
-            this.#messageIds[chunkNumber - 1] = messageId;
-            this.#handleFinishUpload()
-        } while (uploadRetryCount <= this.#maxUploadRetries)
     }
 }
