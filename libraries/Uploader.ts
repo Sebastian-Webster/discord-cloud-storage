@@ -18,7 +18,8 @@ export default class Uploader {
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
     #maxUploadRetries = 10;
-    #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED', messageRetryAttempts: number}[] = []
+    #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
+    #uploadRetries: {[chunkNumber: number]: number}
 
     #folderpath: string;
     #req: Request
@@ -48,31 +49,46 @@ export default class Uploader {
                 }
             })
 
-            this.#uploadWorkers.push({worker: uploadWorker, status: 'NOT_READY', messageRetryAttempts: 0})
+            this.#uploadWorkers.push({worker: uploadWorker, status: 'NOT_READY', workingOnChunkNumber: null})
             
             uploadWorker.on('message', (event: UploadWorkerEvent) => {
                 console.log('Received event from worker', i, ':', event)
                 if (event.event === 'READY') {
                     const worker = this.#uploadWorkers[i]
                     if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
+                        const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
                         worker.status = 'WORKING'
-                        worker.worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
+                        worker.worker.postMessage(chunkNumber)
+                        worker.workingOnChunkNumber = chunkNumber
                     } else {
                         worker.status = 'READY'
                     }
                 }
 
                 if (event.event === 'FAILED_GETTING_READY') {
+                    const worker = this.#uploadWorkers[i]
+                    worker.status = 'FAILED'
+                    worker.workingOnChunkNumber = null
                     uploadWorker.terminate();
-                    this.#uploadWorkers.splice(i, 1)
-                    if (this.#uploadWorkers.length === 0) {
-                        this.#sendHTTP(500, 'All upload workers failed to initialise.')
+                    if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+                        console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
+                        this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
                     }
                 }
 
                 if (event.event === 'FAILED_SENDING_MESSAGE') {
-                    this.#uploadWorkers[i].messageRetryAttempts++
-                    if (this.#uploadWorkers[i].messageRetryAttempts <= this.#maxUploadRetries) {
+                    const worker = this.#uploadWorkers[i]
+
+                    if (this.#uploadRetries[event.chunkNumber]) {
+                        this.#uploadRetries[event.chunkNumber]++
+                    } else {
+                        this.#uploadRetries[event.chunkNumber] = 1
+                    }
+
+
+                    if (this.#uploadRetries[event.chunkNumber] <= this.#maxUploadRetries) {
+                        worker.workingOnChunkNumber = null
+                        worker.status = 'READY'
                         this.uploadChunk(event.chunkNumber)
                     } else {
                         this.#cancelDueToError(`Failed to upload after ${this.#maxUploadRetries} tries.`)
@@ -82,12 +98,33 @@ export default class Uploader {
                 if (event.event === 'MESSAGE_SENT') {
                     this.#messageIds[event.chunkNumber - 1] = event.messageId
                     this.#handleFinishUpload()
+                    const worker = this.#uploadWorkers[i]
                     if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
-                        this.#uploadWorkers[i].worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
+                        const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
+                        worker.workingOnChunkNumber = chunkNumber
+                        worker.worker.postMessage(chunkNumber)
                     } else {
-                        this.#uploadWorkers[i].status = 'READY'
+                        worker.status = 'READY'
+                        worker.workingOnChunkNumber = null
                     }
                 }
+            })
+
+            uploadWorker.on('error', (err) => {
+                console.error('A worker thread crashed on uploading file because of error:', err)
+
+                const worker = this.#uploadWorkers[i]
+                worker.status = 'CRASHED'
+                uploadWorker.terminate()
+
+                if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+                    console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
+                    this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
+                } else {
+                    this.uploadChunk(worker.workingOnChunkNumber)
+                }
+
+                worker.workingOnChunkNumber = null
             })
         }
     }
@@ -116,8 +153,11 @@ export default class Uploader {
     uploadChunk(chunkNumber: number) {
         const potentialWorker = this.#uploadWorkers.filter(worker => worker.status === 'READY')[0]
         if (potentialWorker) {
+            const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
             potentialWorker.status = 'WORKING'
-            potentialWorker.worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
+            potentialWorker.workingOnChunkNumber = chunkNumber
+            potentialWorker.worker.postMessage(chunkNumber)
+
         } else {
             this.#promiseQueue.push(chunkNumber)
         }
