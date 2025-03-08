@@ -11,7 +11,7 @@ import path from "path";
 
 
 export default class Uploader {
-    #concurrentLimit = 25;
+    #concurrentLimit = 50;
     #runningPromises = 0;
     #chunksUploaded = 0;
     #promiseQueue: number[] = [];
