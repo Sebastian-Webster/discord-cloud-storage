@@ -71,6 +71,7 @@ export default class Uploader {
                     worker.workingOnChunkNumber = null
                     uploadWorker.terminate();
                     if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+                        console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
                         console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
                         this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
                     }
@@ -116,6 +117,8 @@ export default class Uploader {
                 const worker = this.#uploadWorkers[i]
                 worker.status = 'CRASHED'
                 uploadWorker.terminate()
+
+                console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
 
                 if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
                     console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
