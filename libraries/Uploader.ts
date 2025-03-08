@@ -156,7 +156,6 @@ export default class Uploader {
     uploadChunk(chunkNumber: number) {
         const potentialWorker = this.#uploadWorkers.filter(worker => worker.status === 'READY')[0]
         if (potentialWorker) {
-            const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
             potentialWorker.status = 'WORKING'
             potentialWorker.workingOnChunkNumber = chunkNumber
             potentialWorker.worker.postMessage(chunkNumber)
