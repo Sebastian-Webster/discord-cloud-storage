@@ -51,6 +51,7 @@ export default class Uploader {
             this.#uploadWorkers.push({worker: uploadWorker, status: 'NOT_READY', messageRetryAttempts: 0})
             
             uploadWorker.on('message', (event: UploadWorkerEvent) => {
+                console.log('Received event from worker', i, ':', event)
                 if (event.event === 'READY') {
                     const worker = this.#uploadWorkers[i]
                     if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
@@ -72,14 +73,15 @@ export default class Uploader {
                 if (event.event === 'FAILED_SENDING_MESSAGE') {
                     this.#uploadWorkers[i].messageRetryAttempts++
                     if (this.#uploadWorkers[i].messageRetryAttempts <= this.#maxUploadRetries) {
-                        this.uploadChunk(event.chunkId)
+                        this.uploadChunk(event.chunkNumber)
                     } else {
                         this.#cancelDueToError(`Failed to upload after ${this.#maxUploadRetries} tries.`)
                     }
                 }
 
                 if (event.event === 'MESSAGE_SENT') {
-                    this.#messageIds[event.chunkId - 1] = event.messageId
+                    this.#messageIds[event.chunkNumber - 1] = event.messageId
+                    console.log('messageIds:', this.#messageIds)
                     this.#handleFinishUpload()
                     if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
                         this.#uploadWorkers[i].worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
@@ -91,7 +93,7 @@ export default class Uploader {
         }
     }
 
-    #terminateAllWorkers(): Promise<number[]> {
+    #terminateAllWorkers: () => Promise<number[]> = () => {
         const promises = this.#uploadWorkers.map(worker => worker.worker.terminate());
         return Promise.all(promises)
     }

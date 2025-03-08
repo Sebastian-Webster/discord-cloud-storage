@@ -96,7 +96,7 @@ declare global {
     }
 
     type UploadWorkerEvent =
-        | {event: 'READY' | 'FAILED_GETTING_READY', messageId?: never, chunkId?: never}
-        | {event: 'MESSAGE_SENT', messageId: string, chunkId: number}
-        | {event: 'FAILED_SENDING_MESSAGE', messageId?: never, chunkId: number}
+        | {event: 'READY' | 'FAILED_GETTING_READY', messageId?: never, chunkNumber?: never}
+        | {event: 'MESSAGE_SENT', messageId: string, chunkNumber: number}
+        | {event: 'FAILED_SENDING_MESSAGE', messageId?: never, chunkNumber: number}
 }
