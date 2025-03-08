@@ -81,7 +81,6 @@ export default class Uploader {
 
                 if (event.event === 'MESSAGE_SENT') {
                     this.#messageIds[event.chunkNumber - 1] = event.messageId
-                    console.log('messageIds:', this.#messageIds)
                     this.#handleFinishUpload()
                     if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
                         this.#uploadWorkers[i].worker.postMessage(this.#promiseQueue.splice(0, 1)[0])
