@@ -1,9 +1,7 @@
-import { Client, Message, TextChannel } from "discord.js";
 import { Request, Response } from "express";
 import File from "../models/File";
 import mongoose from "mongoose";
 import fs from 'fs';
-import fsPromises from 'fs/promises'
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
 import HTTP from "./HTTP";
 import { Worker } from "worker_threads";
@@ -11,7 +9,7 @@ import path from "path";
 
 
 export default class Uploader {
-    #concurrentLimit = 50;
+    #concurrentLimit = 10;
     #runningPromises = 0;
     #chunksUploaded = 0;
     #promiseQueue: number[] = [];
