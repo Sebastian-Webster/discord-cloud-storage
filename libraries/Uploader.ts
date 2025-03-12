@@ -136,6 +136,13 @@ export default class Uploader {
     }
 
     #cancelDueToError(err: string) {
+        fs.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50}, (err) => {
+            if (err) {
+                console.error('An error occurred while deleting temp folder path:', this.#folderpath, ' after an error was caused while uploading a file. The error was:', err)
+            }
+            console.log('Successfully deleted temp folder after an error occurred.')
+        })
+
         this.#terminateAllWorkers().then(() => {
             this.#sendHTTP(500, `An error occurred while uploading file. The error was: ${err}`)
         })
@@ -183,16 +190,18 @@ export default class Uploader {
 
             newFile.save().then(() => {
                 this.#sendHTTP(200, 'Success')
-                fs.rm(this.#folderpath, {recursive: true, force: true}, (err) => {
+            }).catch(error => {
+                console.error('An error occurred while saving file to MongoDB:', error)
+                this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')
+            }).finally(() => {
+                fs.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50}, (err) => {
                     if (err) {
                         console.error('An error occurred while deleting temp folder path:', this.#folderpath, '. The error was:', err)
                     }
                     console.log('Successfully deleted temp folder')
                 })
-            }).catch(error => {
-                console.error('An error occurred while saving file to MongoDB:', error)
-                this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')
-            }).finally(this.#terminateAllWorkers)
+                this.#terminateAllWorkers()
+            })
         }
     }
 }
