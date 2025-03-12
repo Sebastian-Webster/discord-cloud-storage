@@ -95,6 +95,15 @@ export default class Uploader {
                 }
 
                 if (event.event === 'MESSAGE_SENT') {
+                    const deletableFilePath = `${this.#folderpath}/${event.chunkNumber}`
+                    fs.rm(deletableFilePath, {force: true, retryDelay: 100, maxRetries: 50}, (err) => {
+                        if (err) {
+                            console.error('An error occurred after deleting file at path:', deletableFilePath, ' after successful Discord upload. The error was:', err)
+                        } else {
+                            console.log('Successfully deleted chunk number:', event.chunkNumber, 'after successful Discord upload.')
+                        }
+                    })
+                    
                     this.#messageIds[event.chunkNumber - 1] = event.messageId
                     this.#handleFinishUpload()
                     const worker = this.#uploadWorkers[i]
