@@ -33,7 +33,7 @@ parentPort.on('message', (chunkNumber: number) => {
     channel.send({
         files: [{
             attachment: `${folderPath}/${chunkNumber}`,
-            name: `${chunkNumber}`,
+            name: `file`,
             description: 'A cool file'
         }]
     }).then(message => {
