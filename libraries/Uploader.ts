@@ -15,7 +15,7 @@ export default class Uploader {
     #promiseQueue: number[] = [];
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
-    #maxUploadRetries = 100;
+    #maxUploadRetries = 250;
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries: {[chunkNumber: number]: number} = {}
 
