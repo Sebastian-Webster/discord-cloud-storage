@@ -153,6 +153,7 @@ export default class Uploader {
         })
 
         this.#terminateAllWorkers().then(() => {
+            console.error('An error occurred that caused a file upload to be cancelled. The error was:', err)
             this.#sendHTTP(500, `An error occurred while uploading file. The error was: ${err}`)
         })
     }
