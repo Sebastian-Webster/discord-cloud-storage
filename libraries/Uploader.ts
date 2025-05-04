@@ -12,10 +12,12 @@ export default class Uploader {
     #concurrentLimit = 10;
     #runningPromises = 0;
     #chunksUploaded = 0;
+    #crashedThreadRestartCount = 0;
     #promiseQueue: number[] = [];
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
     #maxUploadRetries = 250;
+    #maxThreadRestartsAfterCrash = 250;
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries: {[chunkNumber: number]: number} = {}
 
@@ -41,102 +43,115 @@ export default class Uploader {
         startFileAction(String(this.#userId), this.#fileId, this.#filename, this.#fileSize, `Connecting to Discord...`, 'Upload', -1, -1);
 
         for (let i = 0; i < this.#concurrentLimit; i++) {
-            const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
-                workerData: {
-                    folderPath: folderpath
+            const worker = this.#createWorker(i)
+            this.#uploadWorkers.push({worker, status: 'NOT_READY', workingOnChunkNumber: null})
+        }
+    }
+
+    #createWorker(workerIndex: number): Worker {
+        const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
+            workerData: {
+                folderPath: this.#folderpath
+            }
+        })
+        
+        uploadWorker.on('message', (event: UploadWorkerEvent) => {
+            console.log('Received event from worker', workerIndex, ':', event)
+            if (event.event === 'READY') {
+                const worker = this.#uploadWorkers[workerIndex]
+                if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
+                    const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
+                    worker.status = 'WORKING'
+                    worker.worker.postMessage(chunkNumber)
+                    worker.workingOnChunkNumber = chunkNumber
+                } else {
+                    worker.status = 'READY'
                 }
-            })
+            }
 
-            this.#uploadWorkers.push({worker: uploadWorker, status: 'NOT_READY', workingOnChunkNumber: null})
-            
-            uploadWorker.on('message', (event: UploadWorkerEvent) => {
-                console.log('Received event from worker', i, ':', event)
-                if (event.event === 'READY') {
-                    const worker = this.#uploadWorkers[i]
-                    if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
-                        const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
-                        worker.status = 'WORKING'
-                        worker.worker.postMessage(chunkNumber)
-                        worker.workingOnChunkNumber = chunkNumber
-                    } else {
-                        worker.status = 'READY'
-                    }
-                }
-
-                if (event.event === 'FAILED_GETTING_READY') {
-                    const worker = this.#uploadWorkers[i]
-                    worker.status = 'FAILED'
-                    worker.workingOnChunkNumber = null
-                    uploadWorker.terminate();
-                    if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
-                        console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
-                        console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
-                        this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
-                    }
-                }
-
-                if (event.event === 'FAILED_SENDING_MESSAGE') {
-                    const worker = this.#uploadWorkers[i]
-
-                    if (this.#uploadRetries[event.chunkNumber]) {
-                        this.#uploadRetries[event.chunkNumber]++
-                    } else {
-                        this.#uploadRetries[event.chunkNumber] = 1
-                    }
-
-
-                    if (this.#uploadRetries[event.chunkNumber] <= this.#maxUploadRetries) {
-                        worker.workingOnChunkNumber = null
-                        worker.status = 'READY'
-                        this.uploadChunk(event.chunkNumber)
-                    } else {
-                        this.#cancelDueToError(`Failed to upload after ${this.#maxUploadRetries} tries.`)
-                    }
-                }
-
-                if (event.event === 'MESSAGE_SENT') {
-                    const deletableFilePath = `${this.#folderpath}/${event.chunkNumber}`
-                    fs.rm(deletableFilePath, {force: true, retryDelay: 100, maxRetries: 50}, (err) => {
-                        if (err) {
-                            console.error('An error occurred after deleting file at path:', deletableFilePath, ' after successful Discord upload. The error was:', err)
-                        } else {
-                            console.log('Successfully deleted chunk number:', event.chunkNumber, 'after successful Discord upload.')
-                        }
-                    })
-                    
-                    this.#messageIds[event.chunkNumber - 1] = event.messageId
-                    this.#handleFinishUpload()
-                    const worker = this.#uploadWorkers[i]
-                    if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
-                        const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
-                        worker.workingOnChunkNumber = chunkNumber
-                        worker.worker.postMessage(chunkNumber)
-                    } else {
-                        worker.status = 'READY'
-                        worker.workingOnChunkNumber = null
-                    }
-                }
-            })
-
-            uploadWorker.on('error', (err) => {
-                console.error('A worker thread crashed on uploading file because of error:', err)
-
-                const worker = this.#uploadWorkers[i]
-                worker.status = 'CRASHED'
-                uploadWorker.terminate()
-
-                console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
-
+            if (event.event === 'FAILED_GETTING_READY') {
+                const worker = this.#uploadWorkers[workerIndex]
+                worker.status = 'FAILED'
+                worker.workingOnChunkNumber = null
+                uploadWorker.terminate();
                 if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+                    console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
                     console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
                     this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
+                }
+            }
+
+            if (event.event === 'FAILED_SENDING_MESSAGE') {
+                const worker = this.#uploadWorkers[workerIndex]
+
+                if (this.#uploadRetries[event.chunkNumber]) {
+                    this.#uploadRetries[event.chunkNumber]++
                 } else {
-                    this.uploadChunk(worker.workingOnChunkNumber)
+                    this.#uploadRetries[event.chunkNumber] = 1
                 }
 
-                worker.workingOnChunkNumber = null
-            })
-        }
+
+                if (this.#uploadRetries[event.chunkNumber] <= this.#maxUploadRetries) {
+                    worker.workingOnChunkNumber = null
+                    worker.status = 'READY'
+                    this.uploadChunk(event.chunkNumber)
+                } else {
+                    this.#cancelDueToError(`Failed to upload after ${this.#maxUploadRetries} tries.`)
+                }
+            }
+
+            if (event.event === 'MESSAGE_SENT') {
+                const deletableFilePath = `${this.#folderpath}/${event.chunkNumber}`
+                fs.rm(deletableFilePath, {force: true, retryDelay: 100, maxRetries: 50}, (err) => {
+                    if (err) {
+                        console.error('An error occurred after deleting file at path:', deletableFilePath, ' after successful Discord upload. The error was:', err)
+                    } else {
+                        console.log('Successfully deleted chunk number:', event.chunkNumber, 'after successful Discord upload.')
+                    }
+                })
+                
+                this.#messageIds[event.chunkNumber - 1] = event.messageId
+                this.#handleFinishUpload()
+                const worker = this.#uploadWorkers[workerIndex]
+                if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
+                    const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
+                    worker.workingOnChunkNumber = chunkNumber
+                    worker.worker.postMessage(chunkNumber)
+                } else {
+                    worker.status = 'READY'
+                    worker.workingOnChunkNumber = null
+                }
+            }
+        })
+
+        uploadWorker.on('error', (err) => {
+            console.error('A worker thread crashed on uploading file because of error:', err)
+
+            const worker = this.#uploadWorkers[workerIndex]
+
+            if (this.#crashedThreadRestartCount++ < this.#maxThreadRestartsAfterCrash) {
+                console.error(`Restarting worker thread after crash. Crashed restart count: ${this.#crashedThreadRestartCount}/${this.#maxThreadRestartsAfterCrash}`)
+                this.#uploadWorkers.splice(workerIndex, 1, {worker: this.#createWorker(workerIndex), status: 'NOT_READY', workingOnChunkNumber: null})
+                this.uploadChunk(worker.workingOnChunkNumber)
+                return
+            }
+
+            worker.status = 'CRASHED'
+            uploadWorker.terminate()
+
+            console.error('Cannot restart thread as the max thread restarts threshold has been reached. Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
+
+            if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+                console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
+                this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
+            } else {
+                this.uploadChunk(worker.workingOnChunkNumber)
+            }
+
+            worker.workingOnChunkNumber = null
+        })
+
+        return uploadWorker
     }
 
     #terminateAllWorkers: () => Promise<number[]> = () => {
