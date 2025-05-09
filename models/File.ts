@@ -5,7 +5,8 @@ const fileSchema = new mongoose.Schema<IFileSchema>({
     messageIds: Array,
     fileName: String,
     dateCreated: Number,
-    fileSize: Number
+    fileSize: Number,
+    sharedWith: Array
 })
 
 const File = mongoose.model<IFileSchema>('File', fileSchema);
