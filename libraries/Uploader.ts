@@ -17,7 +17,7 @@ export default class Uploader {
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
     #maxUploadRetries = 500;
-    #maxThreadRestartsAfterCrash = 1000;
+    #maxThreadRestartsAfterCrash = 50;
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries: {[chunkNumber: number]: number} = {}
 
