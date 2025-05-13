@@ -28,20 +28,21 @@ async function getReady(): Promise<void> {
 
 getReady();
 
-parentPort.on('message', (chunkNumber: number) => {
+parentPort.on('message', async (chunkNumber: number) => {
     let event: UploadWorkerEvent
-    channel.send({
-        files: [{
-            attachment: `${folderPath}/${chunkNumber}`,
-            name: `file`,
-            description: 'A cool file'
-        }]
-    }).then(message => {
+    try {
+        const message = await channel.send({
+            files: [{
+                attachment: `${folderPath}/${chunkNumber}`,
+                name: `file`,
+                description: 'A cool file'
+            }]
+        })
         event = {event: 'MESSAGE_SENT', messageId: message.id, chunkNumber}
-    }).catch(error => {
+    } catch (error) {
         console.error('An error occurred while sending message:', error)
         event = {event: 'FAILED_SENDING_MESSAGE', chunkNumber}
-    }).finally(() => {
-        parentPort.postMessage(event)
-    })
+    }
+
+    parentPort.postMessage(event)
 })
