@@ -1,10 +1,7 @@
-const chunkSize = 9 * 1024 * 1024 //9MB - Discord limit is 10MB, so having each file 1MB less than the limit ensures the limit is never reached
-
 import { Router } from "express";
 import { validateAuth } from "../middleware/HTTPAuth";
 import multer from "multer";
 import path from "path";
-import crypto from 'crypto';
 import fs from 'fs';
 import Uploader from "../libraries/Uploader";
 import { v4 } from "uuid";
@@ -15,8 +12,9 @@ import UserModel from "../models/User";
 import { DeleteFile } from "../libraries/Deleter";
 import mongoose from "mongoose";
 import { validateUUIDV4 } from "../libraries/UUID";
-import { fileActionAlreadyOccurring, removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
+import { fileActionAlreadyOccurring, removeFileAction, setFileActionText } from "../socketHandler";
 import HTTP from "../libraries/HTTP";
+import { FileChunkSize } from "../constants";
 
 const userController = Router()
 
@@ -37,15 +35,6 @@ const storage = multer.diskStorage({
 })
 
 const upload = multer({storage, limits: { fieldSize: 1000 * 1000 * 1000 * 1000, fileSize: 1000 * 1000 * 1000 * 1000, fieldNameSize: 1000 * 1000 * 1000 * 1000}})
-
-const hashedEncryptionKey = crypto.createHash('sha512').update(process.env.encryptionKey).digest('base64').slice(0, 32);
-
-function encryptBuffer(buffer: Buffer): Buffer {
-    const iv = crypto.randomBytes(16);
-    console.log('iv:', iv)
-    const cipher = crypto.createCipheriv(process.env.encryptionAlgorithm, hashedEncryptionKey, iv);
-    return Buffer.concat([iv, cipher.update(buffer), cipher.final()])
-}
 
 function writeStreamPromise(stream: fs.WriteStream, chunk: Buffer): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -81,44 +70,13 @@ userController.post('/file', upload.single('file'), (req, res) => {
 
         fs.mkdirSync(folderPath);
 
-        const uploader = new Uploader(folderPath, Math.ceil(req.file.size / chunkSize), req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
+        const chunkCount = Math.ceil(req.file.size / FileChunkSize)
 
-        let count = 0;
+        const uploader = new Uploader(folderPath, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
 
-        const stream = fs.createReadStream(req.file.path, {highWaterMark: chunkSize})
-
-        stream.on('data', (chunk) => {
-            count++;
-            console.log('Received chunk', count, 'of length:', chunk.length)
-            const buffer = Buffer.from(chunk);
-            const encrypted = encryptBuffer(buffer);
-            const bufferCount = count;
-            const newFilePath = `/temp/${filenameWithoutExt}-enc/${count}`
-            fs.writeFile(newFilePath, encrypted, (err) => {
-                if (err) {
-                    console.error('An error occurred:', err)
-                    stream.close();
-                    return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred')
-                }
-                console.log('Written buffer', bufferCount, 'to disk.')
-                uploader.uploadChunk(bufferCount);
-            })
-        })
-
-        stream.on('error', (err) => {
-            console.error('An error occurred:', err)
-            return HTTP.SendHTTP(req, res, 500, String(err) || 'An unknown error occurred')
-        })
-
-        stream.on('end', () => {
-            console.log('Stream ended.')
-            fs.rm(req.file.path, (err => {
-                if (err) {
-                    console.error('ERROR deleting file with path:', req.file.path, err)
-                }
-                console.log('Successfully deleted unneeded file:', req.file.path)
-            }))
-        })
+        for (let i = 0; i < chunkCount; i++) {
+            uploader.uploadChunk(i)
+        }
     }).catch(error => {
         console.error('An error occurred while finding one user with id:', req.cookies.auth, '. The error was:', error)
         return HTTP.SendHTTP(req, res, 500, String (error) || 'An unknown error occurred while finding user. Please try again.')

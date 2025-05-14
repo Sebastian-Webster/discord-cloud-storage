@@ -4,7 +4,7 @@ import mongoose from "mongoose";
 import fs from 'fs';
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
 import HTTP from "./HTTP";
-import { Worker } from "worker_threads";
+import { SHARE_ENV, Worker } from "worker_threads";
 import path from "path";
 
 
@@ -21,7 +21,7 @@ export default class Uploader {
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries: {[chunkNumber: number]: number} = {}
 
-    #folderpath: string;
+    #filepath: string;
     #req: Request
     #res: Response;
     #chunksToUpload: number;
@@ -30,8 +30,8 @@ export default class Uploader {
     #fileSize: number;
     #fileId: string;
 
-    constructor(folderpath: string, chunks: number, req: Request, res: Response, userId: mongoose.Types.ObjectId, filename: string, fileSize: number, fileId: string) {
-        this.#folderpath = folderpath;
+    constructor(filepath: string, chunks: number, req: Request, res: Response, userId: mongoose.Types.ObjectId, filename: string, fileSize: number, fileId: string) {
+        this.#filepath = filepath;
         this.#res = res;
         this.#chunksToUpload = chunks;
         this.#userId = userId;
@@ -51,8 +51,9 @@ export default class Uploader {
     #createWorker(workerIndex: number): Worker {
         const uploadWorker = new Worker(path.resolve('workers', 'UploadWorker.js'), {
             workerData: {
-                folderPath: this.#folderpath
-            }
+                filePath: this.#filepath
+            },
+            env: process.env
         })
         
         uploadWorker.on('message', (event: UploadWorkerEvent) => {
@@ -100,16 +101,7 @@ export default class Uploader {
                 }
             }
 
-            if (event.event === 'MESSAGE_SENT') {
-                const deletableFilePath = `${this.#folderpath}/${event.chunkNumber}`
-                fs.rm(deletableFilePath, {force: true, retryDelay: 100, maxRetries: 50}, (err) => {
-                    if (err) {
-                        console.error('An error occurred after deleting file at path:', deletableFilePath, ' after successful Discord upload. The error was:', err)
-                    } else {
-                        console.log('Successfully deleted chunk number:', event.chunkNumber, 'after successful Discord upload.')
-                    }
-                })
-                
+            if (event.event === 'MESSAGE_SENT') {                
                 this.#messageIds[event.chunkNumber - 1] = event.messageId
                 this.#handleFinishUpload()
                 const worker = this.#uploadWorkers[workerIndex]
@@ -160,11 +152,11 @@ export default class Uploader {
     }
 
     #cancelDueToError(err: string) {
-        fs.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50}, (err) => {
+        fs.rm(this.#filepath, {force: true, retryDelay: 100, maxRetries: 50}, (err) => {
             if (err) {
-                console.error('An error occurred while deleting temp folder path:', this.#folderpath, ' after an error was caused while uploading a file. The error was:', err)
+                console.error('An error occurred while deleting temp file at path:', this.#filepath, ' after an error was caused while uploading a file. The error was:', err)
             }
-            console.log('Successfully deleted temp folder after an error occurred.')
+            console.log('Successfully deleted temp file after an error occurred.')
         })
 
         this.#terminateAllWorkers().then(() => {
@@ -219,11 +211,11 @@ export default class Uploader {
                 console.error('An error occurred while saving file to MongoDB:', error)
                 this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')
             }).finally(() => {
-                fs.rm(this.#folderpath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50}, (err) => {
+                fs.rm(this.#filepath, {recursive: true, force: true, retryDelay: 100, maxRetries: 50}, (err) => {
                     if (err) {
-                        console.error('An error occurred while deleting temp folder path:', this.#folderpath, '. The error was:', err)
+                        console.error('An error occurred while deleting temp file at path:', this.#filepath, 'after upload has successfully finished. The error was:', err)
                     }
-                    console.log('Successfully deleted temp folder')
+                    console.log('Successfully deleted temp file after successful file upload')
                 })
                 this.#terminateAllWorkers()
             })
