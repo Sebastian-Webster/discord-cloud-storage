@@ -63,11 +63,9 @@ userController.post('/file', upload.single('file'), (req, res) => {
 
         console.log('Initiating file upload...')
 
-        const filename = req.file.filename;
-
         const chunkCount = Math.ceil(req.file.size / FileChunkSize)
 
-        const uploader = new Uploader(filename, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
+        const uploader = new Uploader(req.file.path, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
 
         for (let i = 0; i < chunkCount; i++) {
             uploader.uploadChunk(i)
