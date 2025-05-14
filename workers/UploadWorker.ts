@@ -54,7 +54,6 @@ const hashedEncryptionKey = crypto.createHash('sha512').update(process.env.encry
 
 function encryptBuffer(buffer: Buffer): Buffer {
     const iv = crypto.randomBytes(16);
-    console.log('iv:', iv)
     const cipher = crypto.createCipheriv(process.env.encryptionAlgorithm, hashedEncryptionKey, iv);
     return Buffer.concat([iv, cipher.update(buffer), cipher.final()])
 }
