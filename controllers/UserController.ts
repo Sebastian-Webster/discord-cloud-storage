@@ -64,15 +64,10 @@ userController.post('/file', upload.single('file'), (req, res) => {
         console.log('Initiating file upload...')
 
         const filename = req.file.filename;
-        const filenameWithoutExt = filename.slice(0, filename.indexOf('.'));
-
-        const folderPath = `/temp/${filenameWithoutExt}-enc`
-
-        fs.mkdirSync(folderPath);
 
         const chunkCount = Math.ceil(req.file.size / FileChunkSize)
 
-        const uploader = new Uploader(folderPath, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
+        const uploader = new Uploader(filename, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
 
         for (let i = 0; i < chunkCount; i++) {
             uploader.uploadChunk(i)
