@@ -102,7 +102,7 @@ export default class Uploader {
             }
 
             if (event.event === 'MESSAGE_SENT') {                
-                this.#messageIds[event.chunkNumber - 1] = event.messageId
+                this.#messageIds[event.chunkNumber] = event.messageId
                 this.#handleFinishUpload()
                 const worker = this.#uploadWorkers[workerIndex]
                 if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
