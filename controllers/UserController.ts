@@ -254,4 +254,53 @@ userController.delete('/file/:id', (req, res) => {
     })
 })
 
+userController.get('/users/:username', (req, res) => {
+    //User pagination has purposefully not been added because I think it is unneccesary as I'll only have few people use this
+    //The user could just type a more accurate username instead of searching through a long list of users
+
+    const username = req.params.username;
+    const userId = req.cookies.auth;
+
+    UserModel.find({_id: {$ne: userId}, username: {$regex: `^${username}`, $options: 'i'}}, 'secondId username').limit(10).then(users => {
+        HTTP.SendHTTP(req, res, 200, users);
+    }).catch(error => {
+        console.error('An error occurred while finding users with username:', username, '. The error was:', error)
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An error occurred while finding users. Please try again')
+    })
+})
+
+userController.get('/file/sharedwith/:fileId', (req, res) => {
+    const fileId = req.params.fileId;
+    const userId = req.cookies.auth;
+
+    if (!mongoose.isObjectIdOrHexString(fileId)) {
+        return HTTP.SendHTTP(req, res, 400, 'fileId must be an ObjectId.')
+    }
+
+    UserModel.findOne({_id: {$eq: userId}}, 'secondId').lean().then(user => {
+        if (!user) return HTTP.SendHTTP(req, res, 400, {redirect: '/'}, {clearCookie: 'auth'})
+
+        File.findOne({_id: {$eq: fileId}}, 'sharedWith userId').lean().then(file => {
+            if (!file) return HTTP.SendHTTP(req, res, 404, 'File could not be found.')
+
+            if (String(file.userId) !== userId && !file.sharedWith.includes(user.secondId)) return HTTP.SendHTTP(req, res, 403, 'This file is not shared with you.')
+
+            if (!Array.isArray(file.sharedWith) || file.sharedWith.length === 0) return HTTP.SendHTTP(req, res, 200, [])
+
+            UserModel.find({secondId: {$in: file.sharedWith}}, 'secondId username').then(users => {
+                return HTTP.SendHTTP(req, res, 200, users)
+            }).catch(error => {
+                console.error('An error occurred while finding users that have secondIds in this array:', file.sharedWith, '. The error was:', error)
+                return HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occured. Please try again.')
+            })
+        }).catch(error => {
+            console.error('An error occurred while finding one file with id:', fileId, '. The error was:', error)
+            HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.')
+        })
+    }).catch(error => {
+        console.error('An error occurred while finding one user with id:', userId, '. The error was:', error)
+        HTTP.SendHTTP(req, res, 500, String(error) || 'An unknown error occurred.')
+    })
+})
+
 export default userController;
