@@ -26,12 +26,13 @@ let server: http.Server | https.Server;
 if (process.env.NoHTTPS) {
     server = http.createServer(app)
 } else {
+    const SSLFolderLocation = process.env.SSLFolderLocation
     const options = {
-        key: fs.readFileSync('./ssl/private.key'),
-        cert: fs.readFileSync('./ssl/server.crt'),
+        key: fs.readFileSync(`${SSLFolderLocation}/private.key`),
+        cert: fs.readFileSync(`${SSLFolderLocation}/server.crt`),
         ca: [
-            fs.readFileSync('./ssl/intermediate.crt'),
-            fs.readFileSync('./ssl/root.crt')
+            fs.readFileSync(`${SSLFolderLocation}/intermediate.crt`),
+            fs.readFileSync(`${SSLFolderLocation}/root.crt`)
         ]
     };
     
