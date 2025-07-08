@@ -30,7 +30,7 @@ const storage = multer.diskStorage({
     },
     destination: (req, file, cb) => {
         console.log('Finding destination...')
-        cb(null, '/temp')
+        cb(null, process.env.tempFileFolderLocation)
     }
 })
 
@@ -139,7 +139,7 @@ userController.get('/file/:id', (req, res) => {
                     filename = filename.slice(0, dotIndex)
                 }
 
-                const newFolderPath = `/temp/recreate-${v4()}`;
+                const newFolderPath = `${process.env.tempFileFolderLocation}/recreate-${v4()}`;
                 fs.mkdir(newFolderPath, {recursive: true}, async (err) => {
                     if (err) {
                         console.error('Error creating folder with path:', newFolderPath, '. The error was:', err)
