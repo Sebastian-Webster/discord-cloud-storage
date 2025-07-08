@@ -9,7 +9,7 @@ import path from "path";
 
 
 export default class Uploader {
-    #concurrentLimit = 10;
+    #concurrentLimit = 5;
     #runningPromises = 0;
     #chunksUploaded = 0;
     #crashedThreadRestartCount = 0;
