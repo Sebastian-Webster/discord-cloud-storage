@@ -10,7 +10,9 @@ declare global {
             encryptionKey: string,
             discordBotToken: string,
             discordChannelId: string
-            NoHTTPS?: string
+            tempFileFolderLocation: string,
+            NoHTTPS?: undefined | "false" | "true",
+            SSLFolderLocation?: string
         }
     }
     

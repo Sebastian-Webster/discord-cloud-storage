@@ -21,12 +21,12 @@ encryptionKey=KEY #Replace KEY with a random sequence of characters that will be
 discordBotToken=TOKEN #Replace TOKEN with your Discord Bot Token. You will get this from the Discord Developer Portal
 discordChannelId=CHANNEL-ID #Replace CHANNEL-ID with your Discord Channel Id. This is where your file chunks will be uploaded to. Learn how to get that here: https://support.discord.com/hc/en-us/articles/206346498-Where-can-I-find-my-User-Server-Message-ID
 tempFileLocation=LOCATION #Replace LOCATION with the location of the folder you want the temp files to go into on your computer. Make sure this is a fresh folder, i.e only discord-cloud-storage will add/modify/delete/store files in this folder
+cookieSecret=SECRET #Replace SECRET with a random sequence of characters that will be used as the secret for the browser cookies
 ```
 
 The optional (but still important) environment variables used by this project are as follows:
 
 ```
-cookieSecret=SECRET #Replace SECRET with a random sequence of characters that will be used as the secret for the browser cookies
 NoHTTPS=BOOLEAN #Replace BOOLEAN with either true or false. If you do not want discord-cloud-storage to use SSL, set to true. If this is set to false or is unset, you must have the SSLFolderLocation environment variable set (see the next environment variable for information on this)
 SSLFolderLocation=LOCATION #Replace LOCATION with the location for the SSL folder. This is only required if the NoHTTPS environment variable is set to false or is unset. If you are using SSL, this folder must have a private key file named private.key, a server certificate named server.crt, a root certificate called root.crt, and an intermediate certificate called intermediate.crt
 ```

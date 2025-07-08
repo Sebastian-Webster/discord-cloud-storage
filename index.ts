@@ -13,17 +13,20 @@ import http from 'http';
 import https from 'https';
 import { handleSocketConnection, handleSocketDisconnect } from './socketHandler';
 import fs from 'fs';
-
 import { config } from 'dotenv';
+
 import { validateSocketAuth } from './middleware/SocketAuth';
 import HTTP from './libraries/HTTP';
+import { verifyEnvVarCorrectness } from './envChecks';
 config()
 
 const app = express();
 
 let server: http.Server | https.Server;
 
-if (process.env.NoHTTPS) {
+verifyEnvVarCorrectness()
+
+if (process.env.NoHTTPS === 'true') {
     server = http.createServer(app)
 } else {
     const SSLFolderLocation = process.env.SSLFolderLocation
