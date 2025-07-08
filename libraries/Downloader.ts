@@ -71,7 +71,7 @@ export default function Downloader(userId: mongoose.Types.ObjectId, fileId: mong
 
     return new Promise((resolve, reject) => {
         const concurrencyLimit = 10;
-        const folderPath = `/temp/${v4()}`
+        const folderPath = `${process.env.tempFileFolderLocation}/${v4()}`
     
         let chunkNumber = 0;
         let errored = false;

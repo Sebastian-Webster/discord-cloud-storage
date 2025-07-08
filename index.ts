@@ -13,25 +13,29 @@ import http from 'http';
 import https from 'https';
 import { handleSocketConnection, handleSocketDisconnect } from './socketHandler';
 import fs from 'fs';
-
 import { config } from 'dotenv';
+
 import { validateSocketAuth } from './middleware/SocketAuth';
 import HTTP from './libraries/HTTP';
+import { verifyEnvVarCorrectness } from './envChecks';
 config()
 
 const app = express();
 
 let server: http.Server | https.Server;
 
-if (process.env.NoHTTPS) {
+verifyEnvVarCorrectness()
+
+if (process.env.NoHTTPS === 'true') {
     server = http.createServer(app)
 } else {
+    const SSLFolderLocation = process.env.SSLFolderLocation
     const options = {
-        key: fs.readFileSync('./ssl/private.key'),
-        cert: fs.readFileSync('./ssl/server.crt'),
+        key: fs.readFileSync(`${SSLFolderLocation}/private.key`),
+        cert: fs.readFileSync(`${SSLFolderLocation}/server.crt`),
         ca: [
-            fs.readFileSync('./ssl/intermediate.crt'),
-            fs.readFileSync('./ssl/root.crt')
+            fs.readFileSync(`${SSLFolderLocation}/intermediate.crt`),
+            fs.readFileSync(`${SSLFolderLocation}/root.crt`)
         ]
     };
     
