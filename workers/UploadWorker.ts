@@ -5,6 +5,9 @@ import crypto from 'crypto';
 import { FileChunkSize } from "../constants";
 
 let {filePath}: {filePath: string} = workerData;
+let threadCrashed = false;
+let threadReady = false;
+let currentChunkNumber: number;
 
 let client: Client<true>
 let channel: TextChannel
@@ -18,11 +21,46 @@ function promisifiedClientConnect(): Promise<Client<true>> {
     })
 }
 
+process.on('unhandledRejection', (error) => {
+    console.error('UNHANDLED REJECTION IN UPLOADER WORKER THREAD:', error, 'Chunk number:', currentChunkNumber)
+    if (threadReady) {
+        //If the thread is not ready, the crash was caused by the authentication instead of the file upload
+        //In this case we want the thread to restart
+        //This is not following best practices, but to prevent Discord resetting the bot token due to too many connections, doing
+        //this is needed to reduce the number of connections caused by thread crashes
+        threadCrashed = true;
+        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber: currentChunkNumber})
+    } else {
+        throw error
+    }
+})
+
+process.on('uncaughtException', (error) => {
+    console.error('UNHANDLED EXECPTION IN UPLOADER WORKER THREAD:', error, 'Chunk number:', currentChunkNumber)
+    if (threadReady) {
+        //If the thread is not ready, the crash was caused by the authentication instead of the file upload
+        //In this case we want the thread to restart
+        //This is not following best practices, but to prevent Discord resetting the bot token due to too many connections, doing
+        //this is needed to reduce the number of connections caused by thread crashes
+        threadCrashed = true;
+        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber: currentChunkNumber})
+    } else {
+        throw error
+    }
+})
+
+function postMessageIfNotCrashed(event: UploadWorkerEvent): void {
+    if (!threadCrashed) {
+        parentPort.postMessage(event)
+    }
+}
+
 async function getReady(): Promise<void> {
     try {
         client = await promisifiedClientConnect();
         channel = await client.channels.fetch(process.env.discordChannelId) as TextChannel;
-        parentPort.postMessage({event: 'READY'})
+        postMessageIfNotCrashed({event: 'READY'})
+        threadReady = true;
     } catch (e) {
         console.error('An error occurred while getting worker thread ready:', e)
         parentPort.postMessage({event: 'FAILED_GETTING_READY'})
@@ -59,6 +97,9 @@ function encryptBuffer(buffer: Buffer): Buffer {
 }
 
 parentPort.on('message', async (chunkNumber: number) => {
+    threadCrashed = false;
+    console.log('current chunk number before set', chunkNumber)
+    currentChunkNumber = chunkNumber
     let event: UploadWorkerEvent
 
     const startReadPosition = chunkNumber * FileChunkSize + (chunkNumber === 0 ? 0 : 1)
@@ -88,5 +129,5 @@ parentPort.on('message', async (chunkNumber: number) => {
         event = {event: 'FAILED_SENDING_MESSAGE', chunkNumber}
     }
 
-    parentPort.postMessage(event)
+    postMessageIfNotCrashed(event)
 })
