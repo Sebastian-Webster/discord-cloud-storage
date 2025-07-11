@@ -18,7 +18,8 @@ declare global {
     
     interface IUserSchema {
         username: string,
-        password: string
+        password: string,
+        secondId: string
     }
     
     interface IUser extends IUserSchema {
@@ -30,7 +31,8 @@ declare global {
         messageIds: string[],
         fileName: string,
         dateCreated: number,
-        fileSize: number
+        fileSize: number,
+        sharedWith: string[]
     }
     
     interface IFile extends IFileSchema {
