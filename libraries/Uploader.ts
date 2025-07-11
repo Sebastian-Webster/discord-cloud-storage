@@ -16,7 +16,6 @@ export default class Uploader {
     #promiseQueue: number[] = [];
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
-    #maxUploadRetries = 2000;
     #maxThreadRestartsAfterCrash = 50;
     #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries: {[chunkNumber: number]: number} = {}
@@ -29,6 +28,7 @@ export default class Uploader {
     #filename: string;
     #fileSize: number;
     #fileId: string;
+    #maxUploadRetries: number
 
     constructor(filepath: string, chunks: number, req: Request, res: Response, userId: mongoose.Types.ObjectId, filename: string, fileSize: number, fileId: string) {
         this.#filepath = filepath;
@@ -39,6 +39,10 @@ export default class Uploader {
         this.#fileSize = fileSize;
         this.#fileId = fileId;
         this.#req = req;
+
+        this.#maxUploadRetries = chunks * 3
+
+        console.log('maxUploadRetries for file at path:', filepath, 'will be:', this.#maxUploadRetries)
 
         startFileAction(String(this.#userId), this.#fileId, this.#filename, this.#fileSize, `Connecting to Discord...`, 'Upload', -1, -1);
 
