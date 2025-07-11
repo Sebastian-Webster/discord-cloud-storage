@@ -40,7 +40,7 @@ export default class Uploader {
         this.#fileId = fileId;
         this.#req = req;
 
-        this.#maxUploadRetries = chunks * 3
+        this.#maxUploadRetries = chunks * 5
 
         console.log('maxUploadRetries for file at path:', filepath, 'will be:', this.#maxUploadRetries)
 
