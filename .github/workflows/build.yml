@@ -1,0 +1,26 @@
+name: Build
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4.2.2
+    
+    - name: Setup node ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: 24.x
+        check-latest: true
+
+    - name: Install Packages
+      run: npm ci
+
+    - name: Build
+      run: npx tsc
