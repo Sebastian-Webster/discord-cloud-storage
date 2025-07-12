@@ -18,7 +18,7 @@ import { FileChunkSize } from "../constants";
 
 const userController = Router()
 
-userController.all('*', [validateAuth])
+userController.all('/{*splat}', [validateAuth])
 
 const storage = multer.diskStorage({
     filename: (req, file, cb) => {
