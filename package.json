@@ -5,7 +5,7 @@
     "cookie-parser": "^1.4.7",
     "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
-    "express": "^4.20.0",
+    "express": "^4.21.2",
     "https": "^1.0.0",
     "mongoose": "^8.16.3",
     "multer": "^2.0.1",
