@@ -163,3 +163,9 @@ io.on('connection', (socket) => {
         handleSocketDisconnect(socket)
     })
 })
+
+setInterval(() => {
+    console.time('Calculating memory usage')
+    console.log('Server memory usage:', process.memoryUsage())
+    console.timeEnd('Calculating memory usage')
+}, 60 * 2 * 1000) // Every 2 minutes
