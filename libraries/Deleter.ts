@@ -23,7 +23,7 @@ function promiseFactory(messageId: string): Promise<void> {
                 console.log('Waiting', retry, 'seconds before deleting next message.')
                 setTimeout(() => {
                     reject('Rate limited.')
-                }, retry * 1000);
+                }, retry * 1100);
             } else {
                 reject(error)
             }
@@ -35,7 +35,7 @@ function promiseFactory(messageId: string): Promise<void> {
 export function DeleteFile(userId: mongoose.Types.ObjectId, fileId: string, fileName: string, fileSize: number, messageIds: string[]): Promise<void> {
     return new Promise(async (resolve, reject) => {
         const messagesToDelete = messageIds.length;
-        const maxConcurrentPromises = 2;
+        const maxConcurrentPromises = 1;
         const maxDeletionRetries = messageIds.length * 5;
         let promisesRunning = 0;
         let errorOccurred = false;
