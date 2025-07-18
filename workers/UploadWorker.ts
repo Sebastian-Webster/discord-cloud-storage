@@ -96,7 +96,7 @@ parentPort.on('message', async (chunkNumber: number) => {
     }
 
     if (uploadAttachmentError) {
-        console.error('An error occurred while uploading attachment:', uploadAttachmentError)
+        console.error('An error occurred while uploading attachment:', uploadAttachmentError?.response?.data?.errors || String(uploadAttachmentError))
         parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
         return
     }
@@ -119,7 +119,7 @@ parentPort.on('message', async (chunkNumber: number) => {
             headers: authHeaders
         })
     } catch (error) {
-        console.error('An error occurred while creating Discord message:', error)
+        console.error('An error occurred while creating Discord message:', error?.response?.data?.errors || String(error))
     }
 
 
