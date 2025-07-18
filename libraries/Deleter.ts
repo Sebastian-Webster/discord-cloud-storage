@@ -6,13 +6,30 @@ const authHeaders = {
     'Authorization': `Bot ${process.env.discordBotToken}`
 }
 
-async function promiseFactory(messageId: string): Promise<void> {
-    const response = await axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
-        headers: authHeaders
+function promiseFactory(messageId: string): Promise<void> {
+    return new Promise((resolve, reject) => {
+        axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
+            headers: authHeaders
+        }).then(response => {
+            if (response.status !== 204) {
+                reject( `Status code is not 204 as expected. Received status code ${response.status}.`)
+                return
+            }
+            resolve()
+        }).catch(error => {
+            const retry = error?.response?.data?.retry_after
+            // If we have been rate limited, retry after the set amount of time
+            if (typeof retry === 'number') {
+                console.log('Waiting', retry, 'seconds before deleting next message.')
+                setTimeout(() => {
+                    reject('Rate limited.')
+                }, retry * 1000);
+            } else {
+                reject(error)
+            }
+        })
     })
-    if (response.status !== 204) {
-        throw `Status code is not 204 as expected. Received status code ${response.status}.`
-    }
+    
 }
 
 export function DeleteFile(userId: mongoose.Types.ObjectId, fileId: string, fileName: string, fileSize: number, messageIds: string[]): Promise<void> {
