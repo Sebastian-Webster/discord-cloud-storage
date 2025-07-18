@@ -17,8 +17,8 @@ export default class Uploader {
     #messageIds: string[] = [];
     #sentHTTPHeaders = false;
     #maxThreadRestartsAfterCrash = 50;
-    #uploadWorkers: {worker: Worker, status: 'NOT_READY' | 'READY' | 'WORKING' | 'FAILED' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
-    #uploadRetries: {[chunkNumber: number]: number} = {}
+    #uploadWorkers: {worker: Worker, status: 'READY' | 'WORKING' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
+    #uploadRetries = 0;
 
     #filepath: string;
     #req: Request
@@ -48,7 +48,7 @@ export default class Uploader {
 
         for (let i = 0; i < this.#concurrentLimit; i++) {
             const worker = this.#createWorker(i)
-            this.#uploadWorkers.push({worker, status: 'NOT_READY', workingOnChunkNumber: null})
+            this.#uploadWorkers.push({worker, status: 'READY', workingOnChunkNumber: null})
         }
     }
 
@@ -74,29 +74,13 @@ export default class Uploader {
                 }
             }
 
-            if (event.event === 'FAILED_GETTING_READY') {
-                const worker = this.#uploadWorkers[workerIndex]
-                worker.status = 'FAILED'
-                worker.workingOnChunkNumber = null
-                uploadWorker.terminate();
-                if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
-                    console.error('Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
-                    console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
-                    this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
-                }
-            }
-
             if (event.event === 'FAILED_SENDING_MESSAGE') {
                 const worker = this.#uploadWorkers[workerIndex]
 
-                if (this.#uploadRetries[event.chunkNumber]) {
-                    this.#uploadRetries[event.chunkNumber]++
-                } else {
-                    this.#uploadRetries[event.chunkNumber] = 1
-                }
+                this.#uploadRetries++
 
 
-                if (this.#uploadRetries[event.chunkNumber] <= this.#maxUploadRetries) {
+                if (this.#uploadRetries <= this.#maxUploadRetries) {
                     worker.workingOnChunkNumber = null
                     worker.status = 'READY'
                     this.uploadChunk(event.chunkNumber)
@@ -127,7 +111,7 @@ export default class Uploader {
 
             if (this.#crashedThreadRestartCount++ < this.#maxThreadRestartsAfterCrash) {
                 console.error(`Restarting worker thread after crash. Crashed restart count: ${this.#crashedThreadRestartCount}/${this.#maxThreadRestartsAfterCrash}`)
-                this.#uploadWorkers.splice(workerIndex, 1, {worker: this.#createWorker(workerIndex), status: 'NOT_READY', workingOnChunkNumber: null})
+                this.#uploadWorkers.splice(workerIndex, 1, {worker: this.#createWorker(workerIndex), status: 'READY', workingOnChunkNumber: null})
                 this.uploadChunk(worker.workingOnChunkNumber)
                 return
             }
@@ -135,9 +119,9 @@ export default class Uploader {
             worker.status = 'CRASHED'
             uploadWorker.terminate()
 
-            console.error('Cannot restart thread as the max thread restarts threshold has been reached. Max number of threads:', this.#concurrentLimit, '| Number of threads that have failed to initialise:', this.#uploadWorkers.filter(worker => worker.status === 'FAILED'), '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
+            console.error('Cannot restart thread as the max thread restarts threshold has been reached. Max number of threads:', this.#concurrentLimit, '| Number of threads that have crashed:', this.#uploadWorkers.filter(worker => worker.status === 'CRASHED'))
 
-            if (this.#uploadWorkers.filter(worker => worker.status === 'FAILED' || worker.status === 'CRASHED').length === this.#concurrentLimit) {
+            if (this.#uploadWorkers.filter(worker => worker.status === 'CRASHED').length === this.#concurrentLimit) {
                 console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
                 this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
             } else {
