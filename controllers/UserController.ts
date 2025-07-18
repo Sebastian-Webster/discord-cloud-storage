@@ -238,8 +238,8 @@ userController.delete('/file/:id', (req, res) => {
             if (!file) return HTTP.SendHTTP(req, res, 200, 'File does not exist'); //The file does not exist. Since the user is trying to delete it, we may as well say it was a success
 
             File.deleteOne({_id: {$eq: fileId}}).then(() => {
-                DeleteFile(user._id, fileId, file.fileName, file.fileSize, file.messageIds).catch(() => {
-                    //Errors are logged in the DeleteFile function so nothing is needed here.
+                DeleteFile(user._id, fileId, file.fileName, file.fileSize, file.messageIds).catch((error) => {
+                    console.error('Received fatal error from file deleter:', error)
                 }).finally(() => {
                     HTTP.SendHTTP(req, res, 200, 'Success');
                 })
