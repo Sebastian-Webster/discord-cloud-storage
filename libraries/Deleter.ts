@@ -2,8 +2,14 @@ import { startFileAction, setFileActionText, removeFileAction } from "../socketH
 import mongoose from "mongoose";
 import axios from "axios";
 
+const authHeaders = {
+    'Authorization': `Bot ${process.env.discordBotToken}`
+}
+
 async function promiseFactory(messageId: string): Promise<void> {
-    const response = await axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`)
+    const response = await axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
+        headers: authHeaders
+    })
     if (response.status !== 204) {
         throw `Status code is not 204 as expected. Received status code ${response.status}.`
     }
