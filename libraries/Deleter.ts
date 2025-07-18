@@ -18,7 +18,7 @@ async function promiseFactory(messageId: string): Promise<void> {
 export function DeleteFile(userId: mongoose.Types.ObjectId, fileId: string, fileName: string, fileSize: number, messageIds: string[]): Promise<void> {
     return new Promise(async (resolve, reject) => {
         const messagesToDelete = messageIds.length;
-        const maxConcurrentPromises = 3;
+        const maxConcurrentPromises = 1;
         let promisesRunning = 0;
         let errorOccurred = false;
         let messagesDeleted = 0;
