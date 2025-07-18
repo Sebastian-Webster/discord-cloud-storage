@@ -57,6 +57,7 @@ export function DeleteFile(userId: mongoose.Types.ObjectId, fileId: string, file
             promisesRunning++;
             
             promiseFactory(messageId).then(() => handleFinishedDeletion()).catch((error) => {
+                console.error(`Error caught from deletion promiseFactory. Max deletion retries: ${maxDeletionRetries}. Deletion retries so far: ${deletionRetries}`)
                 if (deletionRetries++ <= maxDeletionRetries) {
                     startPromiseExecution(messageId)
                 } else {
