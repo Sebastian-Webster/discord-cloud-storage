@@ -5,7 +5,7 @@ import { authHeaders } from "../constants";
 
 function promiseFactory(messageId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
+        axios.delete(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
             headers: authHeaders
         }).then(response => {
             if (response.status !== 204) {

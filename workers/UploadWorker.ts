@@ -57,7 +57,7 @@ parentPort.on('message', async (chunkNumber: number) => {
     let attachmentResponse;
 
     try {
-        attachmentResponse = await axios.post(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/attachments`, {
+        attachmentResponse = await axios.post(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/attachments`, {
             files: [
                 {
                     filename: 'file',
@@ -80,6 +80,7 @@ parentPort.on('message', async (chunkNumber: number) => {
 
     const attachments = attachmentResponse.data.attachments;
     const upload_url = attachments[0].upload_url
+    const uploaded_filename = attachments[0].upload_filename
 
     let uploadAttachmentError;
 
@@ -101,14 +102,14 @@ parentPort.on('message', async (chunkNumber: number) => {
         {
             id: "0",
             filename: 'file',
-            uploaded_filename: (new URL(upload_url)).pathname.substring(1)
+            uploaded_filename
         }
     ]
 
     let messageResponse;
 
     try {
-        messageResponse = await axios.post(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages`, {
+        messageResponse = await axios.post(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/messages`, {
             attachments: toUpload,
             content: ""
         }, {

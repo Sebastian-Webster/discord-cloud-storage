@@ -12,7 +12,8 @@ declare global {
             discordChannelId: string
             tempFileFolderLocation: string,
             NoHTTPS?: undefined | "false" | "true",
-            SSLFolderLocation?: string
+            SSLFolderLocation?: string,
+            discordURL: string
         }
     }
     

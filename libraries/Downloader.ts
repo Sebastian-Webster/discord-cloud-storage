@@ -15,7 +15,7 @@ type Message = {
 
 function getAttachmentUrl(messageId: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
-        axios.get(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {headers: authHeaders}).then(response => {
+        axios.get(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {headers: authHeaders}).then(response => {
             const url = response?.data?.attachments?.[0]?.url
             if (url) {
                 resolve(url)

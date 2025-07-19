@@ -31,6 +31,12 @@ NoHTTPS=BOOLEAN #Replace BOOLEAN with either true or false. If you do not want d
 SSLFolderLocation=LOCATION #Replace LOCATION with the location for the SSL folder. This is only required if the NoHTTPS environment variable is set to false or is unset. If you are using SSL, this folder must have a private key file named private.key, a server certificate named server.crt, a root certificate called root.crt, and an intermediate certificate called intermediate.crt
 ```
 
+The following are **TESTING ONLY** environment variables. Please do not add these to your environment variables unless you know what you are doing. Leaving them unset is best:
+
+```
+discordURL=https://discord.com
+```
+
 ## How To Run Locally (natively)
 
 Create a file named .env in the root folder of this project. Read the *environment variables* section above for what to put in the .env file.

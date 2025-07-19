@@ -43,4 +43,8 @@ export function verifyEnvVarCorrectness(): void {
     if (NoHTTPS !== 'true' && (typeof SSLLocation !== 'string' || String(SSLLocation).length === 0)) {
         t('NoHTTPS is not set to true and an SSLFolderLocation environment variable has not been set. Either unset NoHTTPS or set it to "false", or make SSLFolderLocation a non-empty string.')
     }
+
+    if (!process.env.discordURL) {
+        process.env.discordURL = 'https://discord.com'
+    }
 }
