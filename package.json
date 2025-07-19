@@ -3,7 +3,6 @@
     "axios": "^1.10.0",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
-    "discord.js": "^14.21.0",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
     "https": "^1.0.0",
