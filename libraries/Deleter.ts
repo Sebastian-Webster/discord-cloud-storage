@@ -1,10 +1,7 @@
 import { startFileAction, setFileActionText, removeFileAction } from "../socketHandler";
 import mongoose from "mongoose";
 import axios from "axios";
-
-const authHeaders = {
-    'Authorization': `Bot ${process.env.discordBotToken}`
-}
+import { authHeaders } from "../constants";
 
 function promiseFactory(messageId: string): Promise<void> {
     return new Promise((resolve, reject) => {

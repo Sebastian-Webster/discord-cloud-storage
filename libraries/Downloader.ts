@@ -1,34 +1,38 @@
-import { Client, GatewayIntentBits, TextChannel } from "discord.js";
 import axios from "axios";
 import { v4 } from "uuid";
 import fs from 'fs';
 import crypto from 'crypto';
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
 import mongoose from "mongoose";
+import { authHeaders } from "../constants";
 
 const hashedEncryptionKey = crypto.createHash('sha512').update(process.env.encryptionKey).digest('base64').slice(0, 32);
 
+type Message = {
+    id: string,
+    chunkNumber: number
+}
+
 function getAttachmentUrl(messageId: string): Promise<string> {
     return new Promise(async (resolve, reject) => {
-        console.log('Getting client ready...')
-        const client = new Client({intents: [GatewayIntentBits.MessageContent]});
-        try {
-            await client.login(process.env.discordBotToken);
-        } catch (error) {
-            console.error('An error occurred while logging into client:', error)
-            reject(error)
-        }
-        client.on('ready', async () => {
-            console.log('Client is ready')
-            const channel = await client.channels.fetch(process.env.discordChannelId) as TextChannel;
-            console.log(messageId)
-            const message = await channel.messages.fetch(messageId);
-            const attachment = message.attachments.first();
-            resolve(attachment.url)
-            console.log('Found attachment url...')
-        })
-        client.on('error', (err) => {
-            reject(err)
+        axios.get(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {headers: authHeaders}).then(response => {
+            const url = response?.data?.attachments?.[0]?.url
+            if (url) {
+                resolve(url)
+            } else {
+                reject('No URL found. Data:' + response.data)
+            }
+        }).catch(error => {
+            const retry = error?.response?.data?.retry_after
+            // If we have been rate limited, retry after the set amount of time
+            if (typeof retry === 'number') {
+                console.log('Waiting', retry, 'seconds before downloading next message.')
+                setTimeout(() => {
+                    reject('Rate limited.')
+                }, retry * 1100);
+            } else {
+                reject(error?.response?.data || error)
+            }
         })
     })
 }
@@ -41,52 +45,64 @@ function decryptBuffer(buffer: Buffer): Buffer {
     return Buffer.concat([decipher.update(encrypted), decipher.final()]);
 }
 
-function downloadAttachment(messageId: string, chunkNumber: number, folderPath: string, callback: (err?: any) => void) {
-    getAttachmentUrl(messageId).then(url => {
+function downloadAttachment(message: Message, folderPath: string, callback: (message: Message, err?: any) => void) {
+    getAttachmentUrl(message.id).then(url => {
         console.log('Getting attachment data from url:', url)
         axios.get(url, {responseType: 'arraybuffer', maxContentLength: 30_000_000}).then(response => {
             const data = Buffer.from(response.data);
             console.log('Decrypting data:', data)
             const decryptedBuffer = decryptBuffer(data);
-            fs.writeFile(`${folderPath}/${chunkNumber}`, decryptedBuffer, (err) => {
+            fs.writeFile(`${folderPath}/${message.chunkNumber}`, decryptedBuffer, (err) => {
                 if (err) {
-                    callback(err)
+                    callback(message, err)
                 }
 
                 console.log('Successfully wrote to temp file')
-                callback()
+                callback(message)
             })
-        }).catch(callback)
-    }).catch(callback)
+        }).catch((err) => callback(message, err))
+    }).catch((err) => callback(message, err))
 }
 
 export default function Downloader(userId: mongoose.Types.ObjectId, fileId: mongoose.Types.ObjectId, fileName: string, fileSize: number, messageIdArray: string[]): Promise<string> {
-    const messageIds = [...messageIdArray]
+    const messages: Message[] = messageIdArray.map((item, index) => {
+        return {
+            id: item,
+            chunkNumber: index + 1
+        }
+    })
     const chunksToDownload = messageIdArray.length;
-    console.log('Message ids:', messageIds)
+    const maxDownloadRetries = chunksToDownload * 3;
+    let chunksDownloaded = 0;
+    let downloadRetries = 0;
+    console.log('Messages:', messages)
 
     console.log('Downloading', messageIdArray.length, 'chunks.')
 
     startFileAction(String(userId), String(fileId), fileName, fileSize, 'Setting up download...', 'Download', -1, -1);
 
     return new Promise((resolve, reject) => {
-        const concurrencyLimit = 10;
+        const concurrencyLimit = 3;
         const folderPath = `${process.env.tempFileFolderLocation}/${v4()}`
-    
-        let chunkNumber = 0;
+
         let errored = false;
         let chunksConcurrentDownloading = 0;
     
-        function handleFinishedDownload(err: any) {
+        function handleFinishedDownload(message: Message, err?: any) {
             chunksConcurrentDownloading--;
 
             if (err) {
-                errored = true;
-                removeFileAction(String(userId), String(fileId), true);
-                return reject(err)
+                if (downloadRetries++ <= maxDownloadRetries) {
+                    // Retry download by adding it to the queue
+                    messages.push(message)
+                } else {
+                    errored = true;
+                    removeFileAction(String(userId), String(fileId), true);
+                    return reject(err)
+                }
+            } else {
+                chunksDownloaded++
             }
-
-            console.log(`Downloaded chunk ${chunkNumber - chunksConcurrentDownloading}/${messageIdArray.length}`)
 
             if (errored) {
                 //Would've rejected with error above
@@ -94,14 +110,11 @@ export default function Downloader(userId: mongoose.Types.ObjectId, fileId: mong
                 return
             }
 
-            const chunksDownloaded = chunkNumber - chunksConcurrentDownloading;
-
             setFileActionText(String(userId), String(fileId), `Downloaded ${chunksDownloaded}/${chunksToDownload} chunks.`, chunksDownloaded, chunksToDownload);
 
-            if (messageIds.length > 0) {
-                chunkNumber++
+            if (messages.length > 0) {
                 chunksConcurrentDownloading++
-                downloadAttachment(messageIds.splice(0, 1)[0], chunkNumber, folderPath, handleFinishedDownload)
+                downloadAttachment(messages.splice(0, 1)[0], folderPath, handleFinishedDownload)
             }
 
             if (chunksConcurrentDownloading === 0) {
@@ -121,11 +134,10 @@ export default function Downloader(userId: mongoose.Types.ObjectId, fileId: mong
 
             setFileActionText(String(userId), String(fileId), `Downloaded 0/${chunksToDownload} chunks.`, 0, chunksToDownload);
 
-            for (const id of messageIds.splice(0, concurrencyLimit)) {
-                console.log('Started download for message with id:', id)
-                chunkNumber++
+            for (const message of messages.splice(0, concurrencyLimit)) {
+                console.log('Started download for message with id:', message.id)
                 chunksConcurrentDownloading++
-                downloadAttachment(id, chunkNumber, folderPath, handleFinishedDownload)
+                downloadAttachment(message, folderPath, handleFinishedDownload)
             }
         })
     })
