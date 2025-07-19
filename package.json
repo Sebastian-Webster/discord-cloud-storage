@@ -18,7 +18,7 @@
     "start": "npx ts-node index.ts --files types/index.d.ts"
   },
   "devDependencies": {
-    "@types/bcrypt": "^5.0.2",
+    "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
     "@types/multer": "^1.4.11",
