@@ -1,7 +1,7 @@
 import { parentPort, workerData } from "worker_threads";
 import fs from 'fs';
 import crypto from 'crypto';
-import { FileChunkSize } from "../constants";
+import { authHeaders, FileChunkSize } from "../constants";
 import axios from "axios";
 
 let {filePath}: {filePath: string} = workerData;
@@ -31,10 +31,6 @@ function encryptBuffer(buffer: Buffer): Buffer {
     const iv = crypto.randomBytes(16);
     const cipher = crypto.createCipheriv(process.env.encryptionAlgorithm, hashedEncryptionKey, iv);
     return Buffer.concat([iv, cipher.update(buffer), cipher.final()])
-}
-
-const authHeaders = {
-    'Authorization': `Bot ${process.env.discordBotToken}`
 }
 
 parentPort.on('message', async (chunkNumber: number) => {
