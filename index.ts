@@ -2,6 +2,11 @@
 
 const timeoutTime = 24 * 60 * 60 * 1000; //1 day in millseconds
 
+import { config } from 'dotenv';
+import { verifyEnvVarCorrectness } from './envChecks';
+config()
+verifyEnvVarCorrectness()
+
 import mongoose from 'mongoose';
 import express, {Request, Response} from 'express';
 import UserLibrary from './libraries/User';
@@ -13,18 +18,13 @@ import http from 'http';
 import https from 'https';
 import { handleSocketConnection, handleSocketDisconnect } from './socketHandler';
 import fs from 'fs';
-import { config } from 'dotenv';
 
 import { validateSocketAuth } from './middleware/SocketAuth';
 import HTTP from './libraries/HTTP';
-import { verifyEnvVarCorrectness } from './envChecks';
-config()
 
 const app = express();
 
 let server: http.Server | https.Server;
-
-verifyEnvVarCorrectness()
 
 if (process.env.NoHTTPS === 'true') {
     server = http.createServer(app)
