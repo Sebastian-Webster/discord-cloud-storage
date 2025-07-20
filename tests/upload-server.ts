@@ -12,7 +12,7 @@ fs.mkdirSync(testServerStorageFolder, {recursive: true})
 const app = express();
 
 app.use(express.json())
-app.use(express.raw({type: 'application/octet-stream'}))
+app.use(express.raw({type: 'application/x-www-form-urlencoded', limit: Number.MAX_SAFE_INTEGER}))
 
 const messages = new Map();
 const attachments = new Set();
@@ -64,7 +64,7 @@ app.put('/upload/:filename', async (req, res) => {
 
     attachments.add(filename)
 
-    res.status(200)
+    res.sendStatus(200)
 })
 
 app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res) => {
@@ -107,7 +107,7 @@ app.delete('/api/v10/chhannels/:channelId/messages/:messageId', DELMessageLimite
         attachments.delete(attachment)
     }
 
-    res.status(204)
+    res.sendStatus(204)
 })
 
 app.get('/api/v10/channels/:channelId/messages/:messageId', GETMessageLimiter, (req, res) => {
