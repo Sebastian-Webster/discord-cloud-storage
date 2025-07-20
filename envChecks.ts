@@ -11,6 +11,7 @@ export function verifyEnvVarCorrectness(): void {
     const NoHTTPS = process.env.NoHTTPS
     const tempLocation = process.env.tempFileFolderLocation
     const SSLLocation = process.env.SSLFolderLocation
+    const port = Number(process.env.port)
 
     if (typeof dbURI !== 'string' || String(dbURI).length === 0) {
         t('The dbURI environment variable must be set and must be a string that is not empty.')
@@ -46,5 +47,9 @@ export function verifyEnvVarCorrectness(): void {
 
     if (!process.env.discordURL) {
         process.env.discordURL = 'https://discord.com'
+    }
+
+    if (isNaN(port) || port < 0 || port > 65535) {
+        process.env.port = '25565';
     }
 }

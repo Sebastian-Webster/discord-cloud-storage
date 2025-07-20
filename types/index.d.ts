@@ -13,7 +13,8 @@ declare global {
             tempFileFolderLocation: string,
             NoHTTPS?: undefined | "false" | "true",
             SSLFolderLocation?: string,
-            discordURL: string
+            discordURL: string,
+            port: string
         }
     }
     

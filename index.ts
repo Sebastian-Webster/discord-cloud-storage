@@ -144,16 +144,6 @@ app.post('/login', async (req, res) => {
     }
 })
 
-mongoose.connect(process.env.dbURI).then(() => {
-    console.log('Successfully connected to database')
-    server.listen(25565, () => {
-        console.log('Successfully started listening on port 25565.')
-    })
-}).catch(error => {
-    console.error('An error occurred:', error)
-    process.exit(1)
-})
-
 
 io.use(validateSocketAuth);
 io.on('connection', (socket) => {
@@ -168,4 +158,18 @@ setInterval(() => {
     console.time('Calculating memory usage')
     console.log('Server memory usage:', process.memoryUsage())
     console.timeEnd('Calculating memory usage')
-}, 60 * 2 * 1000) // Every 2 minutes
+}, 60 * 2 * 1000).unref(); // Every 2 minutes
+
+export default new Promise<http.Server | https.Server>((resolve, reject) => {
+    mongoose.connect(process.env.dbURI).then(() => {
+        console.log('Successfully connected to database')
+        server.listen(process.env.port, () => {
+            console.log(`Successfully started listening on ${server.address()}`)
+            resolve(server)
+        })
+    }).catch(error => {
+        console.error('An error occurred:', error)
+        reject(error)
+        process.exit(1)
+    })
+})
