@@ -36,7 +36,7 @@ app.post('/api/v10/channels/:channelId/attachments', (req, res) => {
         return res.status(404).send('Could not find channel')
     }
 
-    const response = req.body.files.map((item, index) => {
+    const attachments = req.body.files.map((item, index) => {
         const filename = crypto.randomUUID()
         return {
             id: index,
@@ -45,7 +45,7 @@ app.post('/api/v10/channels/:channelId/attachments', (req, res) => {
         }
     })
 
-    res.json(response)
+    res.json({attachments})
 })
 
 app.put('/upload/:filename', async (req, res) => {
