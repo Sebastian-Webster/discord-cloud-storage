@@ -64,3 +64,20 @@ app.post('/api/v10/channels/:channelId/messages', (req, res) => {
     res.status(200).json({id: messageId})
 })
 
+app.delete('/api/v10/chhannels/:channelId/messages/:messageId', async (req, res) => {
+    const messageId = req.params.messageId;
+
+    const messageAttachments = messages.get(messageId)
+
+    if (!messageAttachments) {
+        res.status(404).send('Could not find message')
+    }
+
+    for (const attachment of messageAttachments) {
+        await fsPromises.rm(`${storageFolder}/${attachment}`)
+        attachments.delete(attachment)
+    }
+
+    res.status(204)
+})
+
