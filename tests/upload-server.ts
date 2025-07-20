@@ -72,9 +72,9 @@ app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res)
         return res.status(404).send('Could not find channel')
     }
 
-    const body = req.body;
+    const attachments = req.body.attachments;
 
-    const files = body.map(item => item.upload_filename)
+    const files = attachments.map(item => item.upload_filename)
 
     for (const file of files) {
         if (!attachments.has(file)) {
