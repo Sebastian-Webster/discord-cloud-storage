@@ -1,18 +1,16 @@
-import testExpressServer, {storageFolder} from './upload-server';
+import testExpressServer, {testServerStorageFolder} from './upload-server';
 import discordServer from '../index'
 import crypto from 'crypto'
 import axiosPackage from 'axios';
-import { MongoMemoryServer } from 'mongodb-memory-server'
 import fsPromises from 'fs/promises'
+import os from 'os'
 
-process.env.port = '0'
+const DCSServerTempLocation = os.tmpdir() + '/dcsserver'
 
-async function main() {
+async function test() {
+    await fsPromises.mkdir(DCSServerTempLocation, {recursive: true})
     const testServer = await testExpressServer;
     const realServer = await discordServer;
-    const mongod = await MongoMemoryServer.create();
-
-    const mongoURI = mongod.getUri();
 
     const testAddress = testServer.address()
     const realAddress = realServer.address()
@@ -24,7 +22,7 @@ async function main() {
     const realServerURL = `http://127.0.0.1:${realAddress.port}`
 
     process.env.discordURL = testURL
-    process.env.dbURI = mongoURI
+    process.env.tempFileFolderLocation = DCSServerTempLocation
 
     const axios = axiosPackage.create({
         baseURL: realServerURL,
@@ -37,16 +35,18 @@ async function main() {
 
     // Login
 
-    await axios.post('/login', {username: 'test', password: 'testingapp'})
+    const cookie = (await axios.post('/login', {username: 'test', password: 'testingapp'})).headers['set-cookie'][0]
 
     // Uploading file
 
-    const sendingBytes = crypto.randomBytes(2**31 - 1);
+    const sendingBytes = crypto.randomBytes(2**30);
+    const fileId = crypto.randomUUID();
 
     const sendFormData = new FormData();
     sendFormData.append('file', new Blob([sendingBytes]), 'test.lol')
+    sendFormData.append('fileId', fileId)
 
-    const fileId = (await axios.post('/auth/file', sendFormData)).data
+    await axios.post('/auth/file', sendFormData, {headers: {'Cookie': cookie}})
 
     if ((await axiosPackage.get(`${testURL}/everything-deleted`)).data !== false) {
         throw 'No files exist in test server'
@@ -57,9 +57,9 @@ async function main() {
 
     const filesData = (await axios.get('/auth/files')).data
 
-    if (filesData.storageBytesUsed !== 2**31 - 1) throw `Received incorrect storage bytes used. Expecting 2,147,483,647 but received ${filesData.storageBytesUsed}.`;
+    if (filesData.storageBytesUsed !== 2**30) throw `Received incorrect storage bytes used. Expecting 1,073,741,824 but received ${filesData.storageBytesUsed}.`;
     if (filesData.files[0].filename !== 'test.lol') throw `Received incorrect file name. Expecting test.lol but received ${filesData.files[0].filename}.`;
-    if (filesData.files[0].fileSize !== 2**31 - 1) throw `Received incorrect file size. Expecting 2,147,483,647 but received ${filesData.files[0].fileSize}`;
+    if (filesData.files[0].fileSize !== 2**30) throw `Received incorrect file size. Expecting 1,073,741,824 but received ${filesData.files[0].fileSize}`;
 
     // Download file
 
@@ -81,9 +81,10 @@ async function main() {
 
     if (emptyFilesKeys.length !== 1 || emptyFilesData[0] !== 'files') throw `Received incorrect files data. Expecting empty data. Received: ${emptyFilesData}`
 
-    // Delete temp files from upload server
+    // Delete test files
 
-    await fsPromises.rm(storageFolder, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
+    await fsPromises.rm(testServerStorageFolder, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
+    await fsPromises.rm(DCSServerTempLocation, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
 }
 
-main()
+test()

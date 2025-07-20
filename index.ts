@@ -164,7 +164,7 @@ export default new Promise<http.Server | https.Server>((resolve, reject) => {
     mongoose.connect(process.env.dbURI).then(() => {
         console.log('Successfully connected to database')
         server.listen(process.env.port, () => {
-            console.log(`Successfully started listening on ${server.address()}`)
+            console.log(`Successfully started listening on ${JSON.stringify(server.address())}`)
             resolve(server)
         })
     }).catch(error => {

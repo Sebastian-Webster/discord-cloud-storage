@@ -5,9 +5,9 @@ import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { Server } from 'http';
 
-export const storageFolder = os.tmpdir() + '/dcstestserver'
+export const testServerStorageFolder = os.tmpdir() + '/dcstestserver'
 
-fs.mkdirSync(storageFolder, {recursive: true})
+fs.mkdirSync(testServerStorageFolder, {recursive: true})
 
 const app = express();
 
@@ -54,13 +54,13 @@ app.put('/upload/:filename', async (req, res) => {
     }
 
     const filename = req.params.filename.replaceAll('/', '').replaceAll('\\', '');
-    const storePath = `${storageFolder}/${filename}`;
+    const storePath = `${testServerStorageFolder}/${filename}`;
 
     if (fs.existsSync(storePath)) {
         return res.status(400).send('File already exists.')
     }
 
-    await fsPromises.writeFile(`${storageFolder}/${req.params.filename}`, req.body)
+    await fsPromises.writeFile(`${testServerStorageFolder}/${req.params.filename}`, req.body)
 
     attachments.add(filename)
 
@@ -103,7 +103,7 @@ app.delete('/api/v10/chhannels/:channelId/messages/:messageId', DELMessageLimite
     }
 
     for (const attachment of messageAttachments) {
-        await fsPromises.rm(`${storageFolder}/${attachment}`)
+        await fsPromises.rm(`${testServerStorageFolder}/${attachment}`)
         attachments.delete(attachment)
     }
 
@@ -138,7 +138,7 @@ app.get('/download/:filename', (req, res) => {
         return res.status(404).send('Could not find file')
     }
 
-    res.sendFile(`${storageFolder}/${filename}`)
+    res.sendFile(`${testServerStorageFolder}/${filename}`)
 })
 
 app.get('/everything-deleted', (req, res) => {
