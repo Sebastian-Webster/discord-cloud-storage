@@ -63,7 +63,7 @@ async function test() {
     const filesData = (await axios.get('/auth/files', {headers: {'Cookie': cookie}})).data
 
     if (filesData.storageBytesUsed !== 2**30) throw `Received incorrect storage bytes used. Expecting 1,073,741,824 but received ${filesData.storageBytesUsed}.`;
-    if (filesData.files[0].filename !== 'test.lol') throw `Received incorrect file name. Expecting test.lol but received ${filesData.files[0].filename}.`;
+    if (filesData.files[0].fileName !== 'test.lol') throw `Received incorrect file name. Expecting test.lol but received ${filesData.files[0].filename}.`;
     if (filesData.files[0].fileSize !== 2**30) throw `Received incorrect file size. Expecting 1,073,741,824 but received ${filesData.files[0].fileSize}`;
 
     console.log('Found files')
