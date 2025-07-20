@@ -21,7 +21,7 @@ const channelId = "1"
 
 const rateLimitSettings = {
     windowMs: 1000,
-    limit: 2,
+    limit: 10,
     message: {
         retry_after: 0.3
     }
@@ -41,7 +41,7 @@ app.post('/api/v10/channels/:channelId/attachments', (req, res) => {
         return {
             id: index,
             upload_url: 'http://' + req.host + '/upload/' + filename,
-            uploaded_filename: filename
+            upload_filename: filename
         }
     })
 
@@ -74,7 +74,7 @@ app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res)
 
     const messageAttachments = req.body.attachments;
 
-    const files = messageAttachments.map(item => item.upload_filename)
+    const files = messageAttachments.map(item => item.uploaded_filename)
 
     for (const file of files) {
         if (!attachments.has(file)) {
