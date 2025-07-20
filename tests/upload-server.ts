@@ -14,7 +14,13 @@ app.use(express.raw({type: 'application/octet-stream'}))
 const messages = new Map();
 const attachments = new Set();
 
+const channelId = "1"
+
 app.post('/api/v10/channels/:channelId/messages/attachments', (req, res) => {
+    if (req.params.channelId !== channelId) {
+        return res.status(404).send('Could not find channel')
+    }
+
     const response = req.body.files.map((item, index) => {
         const filename = crypto.randomUUID()
         return {
@@ -32,7 +38,7 @@ app.put('/upload/:filename', async (req, res) => {
         return res.status(400).send('Body must be a Buffer.')
     }
 
-    const filename = req.params.filename;
+    const filename = req.params.filename.replaceAll('/', '').replaceAll('\\', '');
     const storePath = `${storageFolder}/${filename}`;
 
     if (fs.existsSync(storePath)) {
@@ -47,6 +53,10 @@ app.put('/upload/:filename', async (req, res) => {
 })
 
 app.post('/api/v10/channels/:channelId/messages', (req, res) => {
+    if (req.params.channelId !== channelId) {
+        return res.status(404).send('Could not find channel')
+    }
+
     const body = req.body;
 
     const files = body.map(item => item.upload_filename)
@@ -65,6 +75,10 @@ app.post('/api/v10/channels/:channelId/messages', (req, res) => {
 })
 
 app.delete('/api/v10/chhannels/:channelId/messages/:messageId', async (req, res) => {
+    if (req.params.channelId !== channelId) {
+        return res.status(404).send('Could not find channel')
+    }
+
     const messageId = req.params.messageId;
 
     const messageAttachments = messages.get(messageId)
@@ -79,5 +93,36 @@ app.delete('/api/v10/chhannels/:channelId/messages/:messageId', async (req, res)
     }
 
     res.status(204)
+})
+
+app.get('/api/v10/channels/:channelId/messages/:messageId', (req, res) => {
+    if (req.params.channelId !== channelId) {
+        return res.status(404).send('Could not find channel')
+    }
+
+    const messageId = req.params.messageId;
+    const messageAttachments = messages.get(messageId)
+
+    if (!messageAttachments) {
+        return res.status(404).send('Could not find message')
+    }
+
+    const toSend = messageAttachments.map(attachment => {
+        return {
+            url: 'http://' + req.host + '/download/' + attachment
+        }
+    })
+
+    res.status(200).json(toSend)
+})
+
+app.get('/download/:filename', (req, res) => {
+    const filename = req.params.filename.replaceAll('/', '').replaceAll('\\', '')
+
+    if (!attachments.has(filename)) {
+        return res.status(404).send('Could not find file')
+    }
+
+    res.sendFile(`${storageFolder}/${filename}`)
 })
 
