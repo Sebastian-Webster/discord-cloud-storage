@@ -193,8 +193,8 @@ export default class Uploader {
                 fileSize: this.#fileSize
             })
 
-            newFile.save().then(() => {
-                this.#sendHTTP(200, 'Success')
+            newFile.save().then((file) => {
+                this.#sendHTTP(200, file._id.toString())
             }).catch(error => {
                 console.error('An error occurred while saving file to MongoDB:', error)
                 this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')

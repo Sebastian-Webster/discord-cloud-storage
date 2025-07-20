@@ -43,13 +43,12 @@ async function test() {
     // Uploading file
 
     const sendingBytes = crypto.randomBytes(2**30);
-    const fileId = crypto.randomUUID();
 
     const sendFormData = new FormData();
     sendFormData.append('file', new Blob([sendingBytes]), 'test.lol')
-    sendFormData.append('fileId', fileId)
+    sendFormData.append('fileId', crypto.randomUUID())
 
-    await axios.post('/auth/file', sendFormData, {headers: {'Cookie': cookie}})
+    const fileId = (await axios.post('/auth/file', sendFormData, {headers: {'Cookie': cookie}})).data
 
     console.log('Uploaded file')
 
