@@ -33,9 +33,13 @@ async function test() {
 
     await axios.post('/signup', {username: 'test', password: 'testingapp'})
 
+    console.log('Signed up')
+
     // Login
 
     const cookie = (await axios.post('/login', {username: 'test', password: 'testingapp'})).headers['set-cookie'][0]
+
+    console.log('Logged in')
 
     // Uploading file
 
@@ -47,6 +51,8 @@ async function test() {
     sendFormData.append('fileId', fileId)
 
     await axios.post('/auth/file', sendFormData, {headers: {'Cookie': cookie}})
+
+    console.log('Uploaded file')
 
     if ((await axiosPackage.get(`${testURL}/everything-deleted`)).data !== false) {
         throw 'No files exist in test server'
@@ -61,10 +67,14 @@ async function test() {
     if (filesData.files[0].filename !== 'test.lol') throw `Received incorrect file name. Expecting test.lol but received ${filesData.files[0].filename}.`;
     if (filesData.files[0].fileSize !== 2**30) throw `Received incorrect file size. Expecting 1,073,741,824 but received ${filesData.files[0].fileSize}`;
 
+    console.log('Found files')
+
     // Download file
 
     const receivedArrayBuffer = (await axios.get(`/auth/file/${fileId}`, {responseType: 'arraybuffer', maxContentLength: 2**40})).data
     const receivedBuffer = Buffer.from(receivedArrayBuffer)
+
+    console.log('Downloaded file')
 
     if (Buffer.compare(sendingBytes, receivedBuffer) !== 0) throw 'Buffers uploaded and downloaded are not the same.';
 
@@ -73,6 +83,8 @@ async function test() {
     await axios.delete(`/auth/file/${fileId}`)
 
     if ((await axiosPackage.get(`${testURL}/everything-deleted`)).data === false) throw 'Not all messages were deleted.';
+    
+    console.log('Deleted file')
 
     // Get now empty file list
 
@@ -81,10 +93,14 @@ async function test() {
 
     if (emptyFilesKeys.length !== 1 || emptyFilesData[0] !== 'files') throw `Received incorrect files data. Expecting empty data. Received: ${emptyFilesData}`
 
+    console.log('Successfully got empty files list')
+
     // Delete test files
 
     await fsPromises.rm(testServerStorageFolder, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
     await fsPromises.rm(DCSServerTempLocation, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
+
+    console.log('Test is complete')
 }
 
 test()
