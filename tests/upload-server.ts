@@ -1,5 +1,5 @@
 import express from 'express';
-import rateLimit from 'express-rate-limit';
+import { rateLimit } from 'express-rate-limit';
 import os from 'os';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
@@ -15,6 +15,18 @@ const messages = new Map();
 const attachments = new Set();
 
 const channelId = "1"
+
+const rateLimitSettings = {
+    windowMs: 1000,
+    limit: 2,
+    message: {
+        retry_after: 1000
+    }
+}
+
+const POSTMessageLimiter = rateLimit(rateLimitSettings)
+const DELMessageLimiter = rateLimit(rateLimitSettings)
+const GETMessageLimiter = rateLimit(rateLimitSettings)
 
 app.post('/api/v10/channels/:channelId/messages/attachments', (req, res) => {
     if (req.params.channelId !== channelId) {
@@ -52,7 +64,7 @@ app.put('/upload/:filename', async (req, res) => {
     res.status(200)
 })
 
-app.post('/api/v10/channels/:channelId/messages', (req, res) => {
+app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res) => {
     if (req.params.channelId !== channelId) {
         return res.status(404).send('Could not find channel')
     }
@@ -74,7 +86,7 @@ app.post('/api/v10/channels/:channelId/messages', (req, res) => {
     res.status(200).json({id: messageId})
 })
 
-app.delete('/api/v10/chhannels/:channelId/messages/:messageId', async (req, res) => {
+app.delete('/api/v10/chhannels/:channelId/messages/:messageId', DELMessageLimiter, async (req, res) => {
     if (req.params.channelId !== channelId) {
         return res.status(404).send('Could not find channel')
     }
@@ -95,7 +107,7 @@ app.delete('/api/v10/chhannels/:channelId/messages/:messageId', async (req, res)
     res.status(204)
 })
 
-app.get('/api/v10/channels/:channelId/messages/:messageId', (req, res) => {
+app.get('/api/v10/channels/:channelId/messages/:messageId', GETMessageLimiter, (req, res) => {
     if (req.params.channelId !== channelId) {
         return res.status(404).send('Could not find channel')
     }
