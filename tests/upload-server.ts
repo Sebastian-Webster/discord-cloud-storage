@@ -3,8 +3,11 @@ import { rateLimit } from 'express-rate-limit';
 import os from 'os';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
+import { Server } from 'http';
 
-const storageFolder = os.tmpdir() + '/dcstestserver'
+export const storageFolder = os.tmpdir() + '/dcstestserver'
+
+fs.mkdirSync(storageFolder, {recursive: true})
 
 const app = express();
 
@@ -136,5 +139,24 @@ app.get('/download/:filename', (req, res) => {
     }
 
     res.sendFile(`${storageFolder}/${filename}`)
+})
+
+app.get('/everything-deleted', (req, res) => {
+    console.log('Attachments:', attachments)
+    console.log('Messages:', messages)
+
+    if (attachments.size !== 0 && messages.size !== 0) return res.json(false);
+
+    res.json(true);
+})
+
+export default new Promise<Server>((resolve, reject) => {
+    const server = app.listen(0, (err) => {
+        if (err) {
+            return reject(err)
+        }
+
+        resolve(server)
+    })
 })
 
