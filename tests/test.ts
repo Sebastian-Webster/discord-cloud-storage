@@ -25,8 +25,7 @@ async function test() {
     process.env.tempFileFolderLocation = DCSServerTempLocation
 
     const axios = axiosPackage.create({
-        baseURL: realServerURL,
-        withCredentials: true
+        baseURL: realServerURL
     })
 
     // Signup
@@ -61,7 +60,7 @@ async function test() {
 
     // Get file list
 
-    const filesData = (await axios.get('/auth/files')).data
+    const filesData = (await axios.get('/auth/files', {headers: {'Cookie': cookie}})).data
 
     if (filesData.storageBytesUsed !== 2**30) throw `Received incorrect storage bytes used. Expecting 1,073,741,824 but received ${filesData.storageBytesUsed}.`;
     if (filesData.files[0].filename !== 'test.lol') throw `Received incorrect file name. Expecting test.lol but received ${filesData.files[0].filename}.`;
@@ -71,7 +70,7 @@ async function test() {
 
     // Download file
 
-    const receivedArrayBuffer = (await axios.get(`/auth/file/${fileId}`, {responseType: 'arraybuffer', maxContentLength: 2**40})).data
+    const receivedArrayBuffer = (await axios.get(`/auth/file/${fileId}`, {responseType: 'arraybuffer', maxContentLength: 2**40, headers: {'Cookie': cookie}})).data
     const receivedBuffer = Buffer.from(receivedArrayBuffer)
 
     console.log('Downloaded file')
@@ -88,7 +87,7 @@ async function test() {
 
     // Get now empty file list
 
-    const emptyFilesData = (await axios.get('/auth/files')).data
+    const emptyFilesData = (await axios.get('/auth/files', {headers: {'Cookie': cookie}})).data
     const emptyFilesKeys = Object.keys(emptyFilesData)
 
     if (emptyFilesKeys.length !== 1 || emptyFilesData[0] !== 'files') throw `Received incorrect files data. Expecting empty data. Received: ${emptyFilesData}`
