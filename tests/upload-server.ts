@@ -90,7 +90,7 @@ app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res)
     res.status(200).json({id: messageId})
 })
 
-app.delete('/api/v10/chhannels/:channelId/messages/:messageId', DELMessageLimiter, async (req, res) => {
+app.delete('/api/v10/channels/:channelId/messages/:messageId', DELMessageLimiter, async (req, res) => {
     if (req.params.channelId !== channelId) {
         return res.status(404).send('Could not find channel')
     }
