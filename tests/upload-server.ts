@@ -129,7 +129,9 @@ app.get('/api/v10/channels/:channelId/messages/:messageId', GETMessageLimiter, (
         }
     })
 
-    res.status(200).json(toSend)
+    res.status(200).json({
+        attachments: toSend
+    })
 })
 
 app.get('/download/:filename', (req, res) => {
