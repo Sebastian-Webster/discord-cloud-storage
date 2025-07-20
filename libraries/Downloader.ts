@@ -20,7 +20,7 @@ function getAttachmentUrl(messageId: string): Promise<string> {
             if (url) {
                 resolve(url)
             } else {
-                reject('No URL found. Data:' + response.data)
+                reject('No URL found. Data:' + JSON.stringify(response.data))
             }
         }).catch(error => {
             const retry = error?.response?.data?.retry_after
