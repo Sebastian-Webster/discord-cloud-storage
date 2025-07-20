@@ -116,6 +116,10 @@ parentPort.on('message', async (chunkNumber: number) => {
             headers: authHeaders
         })
     } catch (error) {
+        const retryAfter = error?.response?.data?.retry_after
+        if (retryAfter) {
+            await new Promise(resolve => setTimeout(resolve, retryAfter * 1100))
+        }
         console.error('An error occurred while creating Discord message:', error?.response?.data?.errors || String(error))
     }
 
