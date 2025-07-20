@@ -108,6 +108,8 @@ app.delete('/api/v10/channels/:channelId/messages/:messageId', DELMessageLimiter
         attachments.delete(attachment)
     }
 
+    messages.delete(messageId)
+
     res.sendStatus(204)
 })
 
