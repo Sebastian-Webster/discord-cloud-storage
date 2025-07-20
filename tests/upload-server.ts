@@ -23,7 +23,7 @@ const rateLimitSettings = {
     windowMs: 1000,
     limit: 2,
     message: {
-        retry_after: 1000
+        retry_after: 0.3
     }
 }
 
