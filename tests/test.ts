@@ -78,7 +78,7 @@ async function test() {
 
     // Delete file
 
-    await axios.delete(`/auth/file/${fileId}`)
+    await axios.delete(`/auth/file/${fileId}`, {headers: {'Cookie': cookie}})
 
     if ((await axiosPackage.get(`${testURL}/everything-deleted`)).data === false) throw 'Not all messages were deleted.';
     
