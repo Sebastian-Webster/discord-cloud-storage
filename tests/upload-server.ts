@@ -4,6 +4,7 @@ import os from 'os';
 import fs from 'fs';
 import fsPromises from 'fs/promises';
 import { Server } from 'http';
+import mongoose from 'mongoose';
 
 export const testServerStorageFolder = os.tmpdir() + '/dcstestserver'
 
@@ -23,7 +24,7 @@ const rateLimitSettings = {
     windowMs: 1000,
     limit: 10,
     message: {
-        retry_after: 0.3
+        retry_after: 1.1
     }
 }
 
@@ -82,7 +83,7 @@ app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res)
         }
     }
 
-    const messageId = crypto.randomUUID();
+    const messageId = (new mongoose.Types.ObjectId).toString();
 
     messages.set(messageId, files)
 
