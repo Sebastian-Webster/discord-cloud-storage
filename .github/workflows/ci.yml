@@ -27,7 +27,7 @@ jobs:
       run: npm ci
 
     - name: Transpile TS -> JS
-      run: npx tsc -y
+      run: npx tsc
 
     - name: Run Tests
       run: npm test
