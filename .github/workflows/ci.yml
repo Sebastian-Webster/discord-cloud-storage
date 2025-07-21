@@ -1,0 +1,33 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-24.04, macos-13, macos-14, macos-15, windows-2022, windows-2025]
+        node-version: [16.x, 17.x, 18.x, 19.x, 20.x, 21.x, 22.x, 23.x, 24.x]
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4.1.1
+
+    - name: Setup Node
+      uses: actions/setup-node@4.4.0
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Install packages
+      run: npm ci
+
+    - name: Transpile TS -> JS
+      run: npx tsc -y
+
+    - name: Run Tests
+      run: npm test
