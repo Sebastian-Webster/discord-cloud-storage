@@ -89,7 +89,7 @@ async function test() {
     const emptyFilesData = (await axios.get('/auth/files', {headers: {'Cookie': cookie}})).data
     const emptyFilesKeys = Object.keys(emptyFilesData)
 
-    if (emptyFilesKeys.length !== 1 || emptyFilesData[0] !== 'files') throw `Received incorrect files data. Expecting empty data. Received: ${JSON.stringify(emptyFilesData)}`
+    if (emptyFilesKeys.length !== 1 || emptyFilesKeys[0] !== 'files' || !Array.isArray(emptyFilesData.files) || emptyFilesData.files.length !== 0) throw `Received incorrect files data. Expecting empty data. Received: ${JSON.stringify(emptyFilesData)}`
 
     console.log('Successfully got empty files list')
 
