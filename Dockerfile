@@ -7,6 +7,7 @@ RUN npm ci --omit dev
 
 COPY . .
 
+RUN rm -rf tests
 RUN npx tsc --build
 RUN find . -name "*.ts" -type f -delete
 RUN find . -name "*.d.ts" -type f -delete
