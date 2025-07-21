@@ -2,6 +2,11 @@
 
 const timeoutTime = 24 * 60 * 60 * 1000; //1 day in millseconds
 
+import { config } from 'dotenv';
+import { verifyEnvVarCorrectness } from './envChecks';
+config()
+verifyEnvVarCorrectness()
+
 import mongoose from 'mongoose';
 import express, {Request, Response} from 'express';
 import UserLibrary from './libraries/User';
@@ -13,18 +18,13 @@ import http from 'http';
 import https from 'https';
 import { handleSocketConnection, handleSocketDisconnect } from './socketHandler';
 import fs from 'fs';
-import { config } from 'dotenv';
 
 import { validateSocketAuth } from './middleware/SocketAuth';
 import HTTP from './libraries/HTTP';
-import { verifyEnvVarCorrectness } from './envChecks';
-config()
 
 const app = express();
 
 let server: http.Server | https.Server;
-
-verifyEnvVarCorrectness()
 
 if (process.env.NoHTTPS === 'true') {
     server = http.createServer(app)
@@ -144,16 +144,6 @@ app.post('/login', async (req, res) => {
     }
 })
 
-mongoose.connect(process.env.dbURI).then(() => {
-    console.log('Successfully connected to database')
-    server.listen(25565, () => {
-        console.log('Successfully started listening on port 25565.')
-    })
-}).catch(error => {
-    console.error('An error occurred:', error)
-    process.exit(1)
-})
-
 
 io.use(validateSocketAuth);
 io.on('connection', (socket) => {
@@ -168,4 +158,18 @@ setInterval(() => {
     console.time('Calculating memory usage')
     console.log('Server memory usage:', process.memoryUsage())
     console.timeEnd('Calculating memory usage')
-}, 60 * 2 * 1000) // Every 2 minutes
+}, 60 * 2 * 1000).unref(); // Every 2 minutes
+
+export default new Promise<http.Server | https.Server>((resolve, reject) => {
+    mongoose.connect(process.env.dbURI).then(() => {
+        console.log('Successfully connected to database')
+        server.listen(process.env.port, () => {
+            console.log(`Successfully started listening on ${JSON.stringify(server.address())}`)
+            resolve(server)
+        })
+    }).catch(error => {
+        console.error('An error occurred:', error)
+        reject(error)
+        process.exit(1)
+    })
+})

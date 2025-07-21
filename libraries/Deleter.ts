@@ -5,7 +5,7 @@ import { authHeaders } from "../constants";
 
 function promiseFactory(messageId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-        axios.delete(`https://discord.com/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
+        axios.delete(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/messages/${messageId}`, {
             headers: authHeaders
         }).then(response => {
             if (response.status !== 204) {
@@ -75,7 +75,7 @@ export function DeleteFile(userId: mongoose.Types.ObjectId, fileId: string, file
                 promisesRunning--
 
                 console.error(`Error caught from deletion promiseFactory. Max deletion retries: ${maxDeletionRetries}. Deletion retries so far: ${deletionRetries}`)
-                if (deletionRetries++ <= maxDeletionRetries) {
+                if (deletionRetries <= maxDeletionRetries) {
                     startPromiseExecution(messageId)
                 } else {
                     errorOccurred = true;

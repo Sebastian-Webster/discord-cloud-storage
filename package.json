@@ -14,13 +14,16 @@
     "uuid": "^11.1.0"
   },
   "scripts": {
-    "start": "npx ts-node index.ts --files types/index.d.ts"
+    "start": "npx ts-node index.ts --files types/index.d.ts",
+    "test": "node tests/testPrep.js"
   },
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
     "@types/multer": "^2.0.0",
-    "@types/node": "^24.0.15"
+    "@types/node": "^24.0.15",
+    "express-rate-limit": "^8.0.1",
+    "mongodb-memory-server": "^10.1.4"
   }
 }

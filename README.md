@@ -29,6 +29,13 @@ The optional (but still important) environment variables used by this project ar
 ```
 NoHTTPS=BOOLEAN #Replace BOOLEAN with either true or false. If you do not want discord-cloud-storage to use SSL, set to true. If this is set to false or is unset, you must have the SSLFolderLocation environment variable set (see the next environment variable for information on this)
 SSLFolderLocation=LOCATION #Replace LOCATION with the location for the SSL folder. This is only required if the NoHTTPS environment variable is set to false or is unset. If you are using SSL, this folder must have a private key file named private.key, a server certificate named server.crt, a root certificate called root.crt, and an intermediate certificate called intermediate.crt
+port=PORT #Replace PORT with the port you want the Node.js server to run on (defaults to 25565 if unset or is not a number between and including 0 - 65535)
+```
+
+The following are **TESTING ONLY** environment variables. Please do not add these to your environment variables unless you know what you are doing. Leaving them unset is best:
+
+```
+discordURL=https://discord.com
 ```
 
 ## How To Run Locally (natively)
@@ -41,9 +48,10 @@ Once that is done, simply run the following command in the root folder of the pr
 npm start
 ```
 
-A server will be spun up on port 25565.
+A server will be spun up on port 25565 by default, or if you set a port in the environment variables, then it'll be spun up on the specified port.
 
 Go to http://localhost:25565 and create an account. Now start uploading files!
+(Replace 25565 with whatever port you chose if you changed the port the server starts up on)
 
 ## How To Run Locally (with Docker Compose)
 
@@ -54,7 +62,7 @@ services:
   server:
     image: 'sebastianweb/discord-cloud-storage'
     ports:
-      - 3000:25565 #Change the 3000 to whatever port you want to access the frontend from
+      - 3000:25565 #Change the 3000 to whatever port you want to access the frontend from. If you changed the port in the environment variables, change 25565 to whatever port you specified.
     depends_on:
       - messagedb
     environment:

@@ -7,6 +7,7 @@ import HTTP from "./HTTP";
 import { SHARE_ENV, Worker } from "worker_threads";
 import path from "path";
 
+import type { MessageAttachment } from "../workers/UploadWorker";
 
 export default class Uploader {
     #concurrentLimit = 5;
@@ -19,6 +20,7 @@ export default class Uploader {
     #maxThreadRestartsAfterCrash = 50;
     #uploadWorkers: {worker: Worker, status: 'READY' | 'WORKING' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries = 0;
+    #zombieAttachments: {[chunkNumber: number]: MessageAttachment[]} = {}
 
     #filepath: string;
     #req: Request
@@ -62,22 +64,15 @@ export default class Uploader {
         
         uploadWorker.on('message', (event: UploadWorkerEvent) => {
             console.log('Received event from worker', workerIndex, ':', event)
-            if (event.event === 'READY') {
-                const worker = this.#uploadWorkers[workerIndex]
-                if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
-                    const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
-                    worker.status = 'WORKING'
-                    worker.worker.postMessage(chunkNumber)
-                    worker.workingOnChunkNumber = chunkNumber
-                } else {
-                    worker.status = 'READY'
-                }
-            }
 
             if (event.event === 'FAILED_SENDING_MESSAGE') {
                 const worker = this.#uploadWorkers[workerIndex]
 
                 this.#uploadRetries++
+
+                if (event.attachmentsToAttachToMessage) {
+                    this.#zombieAttachments[event.chunkNumber] = event.attachmentsToAttachToMessage
+                }
 
 
                 if (this.#uploadRetries <= this.#maxUploadRetries) {
@@ -89,14 +84,15 @@ export default class Uploader {
                 }
             }
 
-            if (event.event === 'MESSAGE_SENT') {                
+            if (event.event === 'MESSAGE_SENT') {   
+                delete this.#zombieAttachments[event.chunkNumber]             
                 this.#messageIds[event.chunkNumber] = event.messageId
                 this.#handleFinishUpload()
                 const worker = this.#uploadWorkers[workerIndex]
                 if (this.#chunksUploaded < this.#chunksToUpload && this.#promiseQueue.length > 0) {
                     const chunkNumber = this.#promiseQueue.splice(0, 1)[0]
                     worker.workingOnChunkNumber = chunkNumber
-                    worker.worker.postMessage(chunkNumber)
+                    worker.worker.postMessage({chunkNumber, attachmentsToAttachToMessage: this.#zombieAttachments[chunkNumber]})
                 } else {
                     worker.status = 'READY'
                     worker.workingOnChunkNumber = null
@@ -168,7 +164,7 @@ export default class Uploader {
         if (potentialWorker) {
             potentialWorker.status = 'WORKING'
             potentialWorker.workingOnChunkNumber = chunkNumber
-            potentialWorker.worker.postMessage(chunkNumber)
+            potentialWorker.worker.postMessage({chunkNumber, attachmentsToAttachToMessage: this.#zombieAttachments[chunkNumber]})
 
         } else {
             this.#promiseQueue.push(chunkNumber)
@@ -193,8 +189,8 @@ export default class Uploader {
                 fileSize: this.#fileSize
             })
 
-            newFile.save().then(() => {
-                this.#sendHTTP(200, 'Success')
+            newFile.save().then((file) => {
+                this.#sendHTTP(200, file._id.toString())
             }).catch(error => {
                 console.error('An error occurred while saving file to MongoDB:', error)
                 this.#sendHTTP(500, String(error) || 'An unknown error occurred while saving file to MongoDB. Please try again.')

@@ -11,6 +11,7 @@ export function verifyEnvVarCorrectness(): void {
     const NoHTTPS = process.env.NoHTTPS
     const tempLocation = process.env.tempFileFolderLocation
     const SSLLocation = process.env.SSLFolderLocation
+    const port = Number(process.env.port)
 
     if (typeof dbURI !== 'string' || String(dbURI).length === 0) {
         t('The dbURI environment variable must be set and must be a string that is not empty.')
@@ -42,5 +43,13 @@ export function verifyEnvVarCorrectness(): void {
 
     if (NoHTTPS !== 'true' && (typeof SSLLocation !== 'string' || String(SSLLocation).length === 0)) {
         t('NoHTTPS is not set to true and an SSLFolderLocation environment variable has not been set. Either unset NoHTTPS or set it to "false", or make SSLFolderLocation a non-empty string.')
+    }
+
+    if (!process.env.discordURL) {
+        process.env.discordURL = 'https://discord.com'
+    }
+
+    if (isNaN(port) || port < 0 || port > 65535) {
+        process.env.port = '25565';
     }
 }
