@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import { CookieOptions } from 'express';
 
+import type { MessageAttachment } from '../workers/UploadWorker';
+
 declare global {
     namespace NodeJS {
         interface ProcessEnv {
@@ -100,7 +102,6 @@ declare global {
     }
 
     type UploadWorkerEvent =
-        | {event: 'READY' | 'FAILED_GETTING_READY', messageId?: never, chunkNumber?: never}
         | {event: 'MESSAGE_SENT', messageId: string, chunkNumber: number}
-        | {event: 'FAILED_SENDING_MESSAGE', messageId?: never, chunkNumber: number}
+        | {event: 'FAILED_SENDING_MESSAGE', messageId?: never, chunkNumber: number, attachmentsToAttachToMessage?: MessageAttachment[]}
 }

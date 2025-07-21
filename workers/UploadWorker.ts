@@ -6,6 +6,12 @@ import axios from "axios";
 
 let {filePath}: {filePath: string} = workerData;
 
+export type MessageAttachment = {
+    id: string,
+    filename: string,
+    uploaded_filename: string
+}
+
 function partialReadFile(start: number, end: number): Promise<Buffer> {
     return new Promise((resolve, reject) => {
         const stream = fs.createReadStream(filePath, {start, end})
@@ -33,84 +39,91 @@ function encryptBuffer(buffer: Buffer): Buffer {
     return Buffer.concat([iv, cipher.update(buffer), cipher.final()])
 }
 
-parentPort.on('message', async (chunkNumber: number) => {
+parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachToMessage?: MessageAttachment[] | undefined}) => {
+    const {chunkNumber, attachmentsToAttachToMessage} = data;
+
     let event: UploadWorkerEvent
+    let toAttachToMessage: MessageAttachment[]
 
-    const startReadPosition = chunkNumber * FileChunkSize + (chunkNumber === 0 ? 0 : 1)
-    const endReadPosition = (chunkNumber + 1) * FileChunkSize
+    if (!attachmentsToAttachToMessage) {
+        const startReadPosition = chunkNumber * FileChunkSize + (chunkNumber === 0 ? 0 : 1)
+        const endReadPosition = (chunkNumber + 1) * FileChunkSize
 
-    let fileBuffer: Buffer
+        let fileBuffer: Buffer
 
-    try {
-        fileBuffer = await partialReadFile(startReadPosition, endReadPosition)
-    } catch (e) {
-        console.error('An error occurred while reading chunk number', chunkNumber, 'on file:', filePath, '. The error was:', e)   
-    }
-
-    if (!fileBuffer) {
-        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
-        return
-    }
-
-    const encryptedBuffer = encryptBuffer(fileBuffer)
-
-    let attachmentResponse;
-
-    try {
-        attachmentResponse = await axios.post(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/attachments`, {
-            files: [
-                {
-                    filename: 'file',
-                    file_size: encryptedBuffer.byteLength,
-                    id: 0
-                }
-            ]
-        }, {
-            headers: authHeaders
-        })
-    } catch (error) {
-        console.error('An error occurred while getting attachment upload URLs:', error?.response?.data?.errors || String(error))
-    }
-
-    if (!attachmentResponse?.data?.attachments) {
-        console.error('Sending FAILED_SENDING_MESSAGE event because attachments could not be found.')
-        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
-        return
-    }
-
-    const attachments = attachmentResponse.data.attachments;
-    const upload_url = attachments[0].upload_url
-    const uploaded_filename = attachments[0].upload_filename
-
-    let uploadAttachmentError;
-
-    try {
-        await axios.put(upload_url, encryptedBuffer, {
-            headers: authHeaders
-        })
-    } catch (error) {
-        uploadAttachmentError = error;
-    }
-
-    if (uploadAttachmentError) {
-        console.error('An error occurred while uploading attachment:', uploadAttachmentError?.response?.data?.errors || String(uploadAttachmentError))
-        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
-        return
-    }
-
-    const toUpload = [
-        {
-            id: "0",
-            filename: 'file',
-            uploaded_filename
+        try {
+            fileBuffer = await partialReadFile(startReadPosition, endReadPosition)
+        } catch (e) {
+            console.error('An error occurred while reading chunk number', chunkNumber, 'on file:', filePath, '. The error was:', e)   
         }
-    ]
+
+        if (!fileBuffer) {
+            parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
+            return
+        }
+
+        const encryptedBuffer = encryptBuffer(fileBuffer)
+
+        let attachmentResponse;
+
+        try {
+            attachmentResponse = await axios.post(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/attachments`, {
+                files: [
+                    {
+                        filename: 'file',
+                        file_size: encryptedBuffer.byteLength,
+                        id: 0
+                    }
+                ]
+            }, {
+                headers: authHeaders
+            })
+        } catch (error) {
+            console.error('An error occurred while getting attachment upload URLs:', error?.response?.data?.errors || String(error))
+        }
+
+        if (!attachmentResponse?.data?.attachments) {
+            console.error('Sending FAILED_SENDING_MESSAGE event because attachments could not be found.')
+            parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
+            return
+        }
+
+        const attachments = attachmentResponse.data.attachments;
+        const upload_url = attachments[0].upload_url
+        const uploaded_filename = attachments[0].upload_filename
+
+        let uploadAttachmentError;
+
+        try {
+            await axios.put(upload_url, encryptedBuffer, {
+                headers: authHeaders
+            })
+        } catch (error) {
+            uploadAttachmentError = error;
+        }
+
+        if (uploadAttachmentError) {
+            console.error('An error occurred while uploading attachment:', uploadAttachmentError?.response?.data?.errors || String(uploadAttachmentError))
+            parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
+            return
+        }
+
+        toAttachToMessage = [
+            {
+                id: "0",
+                filename: 'file',
+                uploaded_filename
+            }
+        ]
+    } else {
+        toAttachToMessage = attachmentsToAttachToMessage
+    }
 
     let messageResponse;
 
     try {
         messageResponse = await axios.post(`${process.env.discordURL}/api/v10/channels/${process.env.discordChannelId}/messages`, {
-            attachments: toUpload,
+            attachments: toAttachToMessage,
             content: ""
         }, {
             headers: authHeaders
@@ -125,7 +138,7 @@ parentPort.on('message', async (chunkNumber: number) => {
 
 
     if (!messageResponse?.data?.id) {
-        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber})
+        parentPort.postMessage({event: 'FAILED_SENDING_MESSAGE', chunkNumber, attachmentsToAttachToMessage: toAttachToMessage})
         return
     }
 
