@@ -40,6 +40,8 @@ discordURL=https://discord.com
 
 ## How To Run Locally (natively)
 
+Make sure you have Node.js 19.0.0 or newer installed. ```discord-cloud-storage``` requires Node.js >= 19.0.0.
+
 Create a file named .env in the root folder of this project. Read the *environment variables* section above for what to put in the .env file.
 
 Once that is done, simply run the following command in the root folder of the project:
