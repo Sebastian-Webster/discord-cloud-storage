@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-image:
+  test:
     runs-on: ${{ matrix.os }}
 
     strategy:
