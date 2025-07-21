@@ -4,6 +4,7 @@ import crypto from 'crypto'
 import axiosPackage from 'axios';
 import fsPromises from 'fs/promises'
 import os from 'os'
+import mongoose from 'mongoose';
 
 const DCSServerTempLocation = os.tmpdir() + '/dcsserver'
 
@@ -98,12 +99,8 @@ async function test() {
     await fsPromises.rm(testServerStorageFolder, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
     await fsPromises.rm(DCSServerTempLocation, {recursive: true, force: true, maxRetries: 100, retryDelay: 50})
 
-    console.log('Test is complete. Shutting down test server and DCS server...')
-
-    testServer.closeAllConnections()
-    realServer.closeAllConnections()
-
-    console.log('Shutdown complete. Congratulations!')
+    console.log('Test completed with no issues. Congratulations!')
+    process.exit(0)
 }
 
 test()
