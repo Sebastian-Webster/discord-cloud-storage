@@ -38,7 +38,7 @@ Create a file named .env in the root folder of this project. Read the *environme
 Once that is done, simply run the following command in the root folder of the project:
 
 ```
-npx ts-node index.ts
+npm start
 ```
 
 A server will be spun up on port 25565.
