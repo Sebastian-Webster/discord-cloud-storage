@@ -20,7 +20,7 @@ export default class Uploader {
     #maxThreadRestartsAfterCrash = 50;
     #uploadWorkers: {worker: Worker, status: 'READY' | 'WORKING' | 'CRASHED', workingOnChunkNumber: null | number}[] = []
     #uploadRetries = 0;
-    #zombieAttachments: {[chunkNumber: number]: MessageAttachment[]}
+    #zombieAttachments: {[chunkNumber: number]: MessageAttachment[]} = {}
 
     #filepath: string;
     #req: Request
