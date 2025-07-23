@@ -31,8 +31,9 @@ const rateLimitSettings = {
 const POSTMessageLimiter = rateLimit(rateLimitSettings)
 const DELMessageLimiter = rateLimit(rateLimitSettings)
 const GETMessageLimiter = rateLimit(rateLimitSettings)
+const retrieveAttachmentURLLimiter = rateLimit(rateLimitSettings)
 
-app.post('/api/v10/channels/:channelId/attachments', (req, res) => {
+app.post('/api/v10/channels/:channelId/attachments', retrieveAttachmentURLLimiter, (req, res) => {
     if (req.params.channelId !== channelId) {
         return res.status(404).send('Could not find channel')
     }
