@@ -131,7 +131,9 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
     } catch (error) {
         const retryAfter = error?.response?.data?.retry_after
         if (retryAfter) {
-            await new Promise(resolve => setTimeout(resolve, retryAfter * 1100))
+            const waitTime = retryAfter * 1100
+            console.log('Waiting', waitTime.toLocaleString(), 'milliseconds before retrying upload')
+            await new Promise(resolve => setTimeout(resolve, waitTime))
         }
         console.error('An error occurred while creating Discord message:', error?.response?.data?.errors || String(error))
     }
