@@ -22,7 +22,7 @@ const channelId = "1"
 
 const rateLimitSettings = {
     windowMs: 1000,
-    limit: 10,
+    limit: 2,
     message: {
         retry_after: 1.1
     }
