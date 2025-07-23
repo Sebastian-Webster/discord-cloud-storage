@@ -79,6 +79,12 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
                 headers: authHeaders
             })
         } catch (error) {
+            const retryAfter = error?.response?.data?.retry_after
+            if (retryAfter) {
+                const waitTime = retryAfter * 1100
+                console.log('Waiting', waitTime.toLocaleString(), 'milliseconds before getting attachment upload URLs')
+                await new Promise(resolve => setTimeout(resolve, waitTime))
+            }
             console.error('An error occurred while getting attachment upload URLs:', error?.response?.data?.errors || String(error))
         }
 
