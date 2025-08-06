@@ -10,7 +10,7 @@ import path from "path";
 import type { MessageAttachment } from "../workers/UploadWorker";
 
 export default class Uploader {
-    #concurrentLimit = 5;
+    #concurrentLimit = 1;
     #runningPromises = 0;
     #chunksUploaded = 0;
     #crashedThreadRestartCount = 0;
