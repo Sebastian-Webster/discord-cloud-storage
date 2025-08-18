@@ -2,6 +2,7 @@ import bcrypt from 'bcrypt';
 import User from '../models/User';
 import HTTP from './HTTP';
 import mongoose from 'mongoose';
+import {randomUUID} from 'crypto';
 
 export default class UserLibrary {
     static async signin(username: string, password: string): Promise<mongoose.Types.ObjectId | IHTTPForbidden | IHTTPServerError | IHTTPNotFound> {
@@ -44,7 +45,8 @@ export default class UserLibrary {
     
         const newUser = {
             username,
-            password: hashedPassword
+            password: hashedPassword,
+            secondId: randomUUID()
         }
     
         try {
