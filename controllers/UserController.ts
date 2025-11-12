@@ -4,7 +4,6 @@ import multer from "multer";
 import path from "path";
 import fs from 'fs';
 import Uploader from "../libraries/Uploader";
-import { v4 } from "uuid";
 import File from "../models/File";
 import Downloader from "../libraries/Downloader";
 import fsPromises from 'fs/promises';
@@ -15,6 +14,7 @@ import { validateUUIDV4 } from "../libraries/UUID";
 import { fileActionAlreadyOccurring, removeFileAction, setFileActionText } from "../socketHandler";
 import HTTP from "../libraries/HTTP";
 import { FileChunkSize } from "../constants";
+import crypto from 'crypto';
 
 const userController = Router()
 
@@ -24,7 +24,7 @@ const storage = multer.diskStorage({
     filename: (req, file, cb) => {
         console.log('Deciding on filename:', file.originalname)
         const extname = path.extname(file.originalname);
-        const filename = v4() + extname
+        const filename = crypto.randomUUID() + extname
         console.log('new filename:', filename)
         cb(null, filename)
     },
@@ -139,7 +139,7 @@ userController.get('/file/:id', (req, res) => {
                     filename = filename.slice(0, dotIndex)
                 }
 
-                const newFolderPath = `${process.env.tempFileFolderLocation}/recreate-${v4()}`;
+                const newFolderPath = `${process.env.tempFileFolderLocation}/recreate-${crypto.randomUUID()}`;
                 fs.mkdir(newFolderPath, {recursive: true}, async (err) => {
                     if (err) {
                         console.error('Error creating folder with path:', newFolderPath, '. The error was:', err)

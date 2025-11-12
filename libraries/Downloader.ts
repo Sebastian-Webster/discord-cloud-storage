@@ -1,5 +1,4 @@
 import axios from "axios";
-import { v4 } from "uuid";
 import fs from 'fs';
 import crypto from 'crypto';
 import { removeFileAction, setFileActionText, startFileAction } from "../socketHandler";
@@ -83,7 +82,7 @@ export default function Downloader(userId: mongoose.Types.ObjectId, fileId: mong
 
     return new Promise((resolve, reject) => {
         const concurrencyLimit = 3;
-        const folderPath = `${process.env.tempFileFolderLocation}/${v4()}`
+        const folderPath = `${process.env.tempFileFolderLocation}/${crypto.randomUUID()}`
 
         let errored = false;
         let chunksConcurrentDownloading = 0;
