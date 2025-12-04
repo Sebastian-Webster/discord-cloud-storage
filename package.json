@@ -19,7 +19,7 @@
   "devDependencies": {
     "@types/bcrypt": "^6.0.0",
     "@types/cookie-parser": "^1.4.10",
-    "@types/express": "^5.0.5",
+    "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.10.1",
     "express-rate-limit": "^8.2.1",
