@@ -23,6 +23,6 @@
     "@types/multer": "^2.0.0",
     "@types/node": "^25.0.3",
     "express-rate-limit": "^8.2.1",
-    "mongodb-memory-server": "^10.4.1"
+    "mongodb-memory-server": "^11.0.1"
   }
 }
