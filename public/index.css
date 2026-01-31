@@ -98,6 +98,7 @@ main {
 #add-file-button {
     font-size: 30pt;
     font-family: "AntDesign";
+    cursor: pointer;
     text-align: right;
     margin-right: 10px;
 }
@@ -130,17 +131,21 @@ main {
     width: 50%;
 }
 
+.file-filename-and-context-menu {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.file-context-button {
+    cursor: pointer;
+}
+
 .file-filename {
     text-overflow: ellipsis;
     overflow: hidden;
     white-space: nowrap;
     max-width: 100%;
-}
-
-.file-metadata-and-download {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
 }
 
 @media only screen and (min-width: 600px) {
@@ -279,4 +284,94 @@ label {
     align-items: center;
     flex-direction: column;
     text-align: center;
+}
+
+.file-context-menu {
+    position: absolute;
+    border: 2px solid black;
+    border-radius: 10px;
+    width: fit-content;
+    background-color: white;
+    z-index: 3;
+}
+
+.file-context-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid black;
+    padding: 5px;
+    cursor: pointer;
+}
+
+.file-context-item:last-child {
+    border-bottom: none;
+}
+
+#file-context-screen-blocker {
+    display: none;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+.clickable-when-blocked {
+    z-index: 3;
+}
+
+#file-share-outer-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    background-color: rgba(0, 0, 0, 0.7);
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    z-index: 4;
+    top: 0px;
+    left: 0px;
+}
+
+#file-share-inner-container {
+    border: 1px solid black;
+    border-radius: 20px;
+    background-color: white;
+    padding: 10px 20px;
+    width: min(80vw, 500px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+#file-share-file-shared-with-container {
+    overflow-x: scroll;
+    overflow-y: hidden;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.file-share-user-x {
+    font-family: "AntDesign";
+    cursor: pointer;
+    margin-left: 5px;
+    font-size: smaller;
+}
+
+.file-share-user {
+    background-color: rgb(190, 190, 190);
+    border-radius: 10px;
+    padding: 5px 10px;
+}
+
+#file-share-user-username-input {
+    width: 100%;
+    border: 2px solid rgb(190, 190, 190);
+    border-radius: 10px;
+    margin-top: 10px;
+    padding: 5px;
 }
