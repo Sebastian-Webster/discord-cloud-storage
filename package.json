@@ -3,7 +3,7 @@
     "axios": "^1.13.4",
     "bcrypt": "^6.0.0",
     "cookie-parser": "^1.4.7",
-    "dotenv": "^17.2.3",
+    "dotenv": "^17.2.4",
     "express": "^5.2.1",
     "https": "^1.0.0",
     "mongoose": "^9.1.6",
