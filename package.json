@@ -21,7 +21,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.0.0",
-    "@types/node": "^25.3.1",
+    "@types/node": "^25.3.2",
     "express-rate-limit": "^8.2.1",
     "mongodb-memory-server": "^11.0.1"
   }
