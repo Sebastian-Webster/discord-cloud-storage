@@ -7,7 +7,7 @@
     "express": "^5.2.1",
     "https": "^1.0.0",
     "mongoose": "^9.2.3",
-    "multer": "^2.0.2",
+    "multer": "^2.1.0",
     "path": "^0.12.7",
     "socket.io": "^4.8.3",
     "typescript": "^5.9.3"
