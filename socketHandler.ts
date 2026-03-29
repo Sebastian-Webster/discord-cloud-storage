@@ -1,5 +1,4 @@
 import { Socket } from "socket.io";
-import mongoose from "mongoose";
 
 const socketMap = new Map<string, Socket>();
 const fileActionMap = new Map<string, ISocketFileActions>();
