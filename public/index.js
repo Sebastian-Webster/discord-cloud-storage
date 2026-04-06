@@ -276,6 +276,7 @@ function createFile(file) {
     fileElement.querySelector('.file-filesize').textContent = SizeCalculator(file.fileSize);
     fileElement.querySelector('.file-delete-button').setAttribute('onclick', `deleteFile('${fileId}', '${file.fileName}')`)
     fileElement.querySelector('.file-download-button').setAttribute('onclick', `downloadFile('${fileId}', '${file.fileName}')`)
+    fileElement.querySelector('.file-creation-date').textContent = `Uploaded: ${new Date(file.dateCreated).toLocaleDateString('en-NZ', {day: '2-digit', month: '2-digit', year: '2-digit'})}`
 
     fileList.appendChild(fileElement)
 }
