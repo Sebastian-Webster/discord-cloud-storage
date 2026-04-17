@@ -10,7 +10,7 @@
     "multer": "^2.1.1",
     "path": "^0.12.7",
     "socket.io": "^4.8.3",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   },
   "scripts": {
     "start": "npx ts-node index.ts --files types/index.d.ts",
