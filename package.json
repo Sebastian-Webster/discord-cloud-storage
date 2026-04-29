@@ -6,7 +6,7 @@
     "dotenv": "^17.4.1",
     "express": "^5.2.1",
     "https": "^1.0.0",
-    "mongoose": "^9.4.1",
+    "mongoose": "^9.6.0",
     "multer": "^2.1.1",
     "path": "^0.12.7",
     "socket.io": "^4.8.3",
