@@ -25,6 +25,7 @@ function partialReadFile(start: number, end: number): Promise<Buffer> {
         stream.on('data', (chunk) => {
             let chunkPiece = chunk
 
+            console.log('Typeof chunkPiece:', typeof chunkPiece, 'Is Buffer:', Buffer.isBuffer(chunkPiece))
             if (typeof chunkPiece === 'string') {
                 console.error('chunkPiece is a string. Converting to buffer.')
                 chunkPiece = Buffer.from(chunkPiece)
