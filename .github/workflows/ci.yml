@@ -12,22 +12,33 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node-version: [19.0.0, 19.x, 20.x, 21.x, 22.x, 23.x, 24.x]
+        node-version: [19.0.0, 19.x, 20.x, 21.x, 22.x, 23.x, 24.x, 25.x, 26.x]
 
     steps:
     - name: Checkout Repository
       uses: actions/checkout@v4.1.1
 
-    - name: Setup Node
+    - name: Setup Node 24.x
       uses: actions/setup-node@v4.4.0
       with:
-        node-version: ${{ matrix.node-version }}
+        node-version: 24.x
+
+    - name: Log Node.js version
+      run: node -v
 
     - name: Install packages
       run: npm ci
 
     - name: Transpile TS -> JS
       run: npx tsc
+
+    - name: Setup Node ${{ matrix.node-version }}
+      uses: actions/setup-node@v4.4.0
+      with:
+        node-version: ${{ matrix.node-version }}
+
+    - name: Log Node.js version
+      run: node -v
 
     - name: Run Tests
       run: npm test
