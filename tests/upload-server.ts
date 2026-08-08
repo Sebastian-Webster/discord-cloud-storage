@@ -38,14 +38,15 @@ app.post('/api/v10/channels/:channelId/attachments', retrieveAttachmentURLLimite
         return res.status(404).send('Could not find channel')
     }
 
-    const attachments = req.body.files.map((item, index) => {
+    const attachments = []
+    for (let i = 0; i < req.body.files.length; i++) {
         const filename = crypto.randomUUID()
-        return {
-            id: index,
+        attachments.push({
+            id: i,
             upload_url: 'http://' + req.host + '/upload/' + filename,
             upload_filename: filename
-        }
-    })
+        })
+    }
 
     res.json({attachments})
 })
@@ -76,7 +77,7 @@ app.post('/api/v10/channels/:channelId/messages', POSTMessageLimiter, (req, res)
 
     const messageAttachments = req.body.attachments;
 
-    const files = messageAttachments.map(item => item.uploaded_filename)
+    const files = messageAttachments.map((item: {uploaded_filename: string}) => item?.uploaded_filename)
 
     for (const file of files) {
         if (!attachments.has(file)) {
@@ -126,7 +127,7 @@ app.get('/api/v10/channels/:channelId/messages/:messageId', GETMessageLimiter, (
         return res.status(404).send('Could not find message')
     }
 
-    const toSend = messageAttachments.map(attachment => {
+    const toSend = messageAttachments.map((attachment: string) => {
         return {
             url: 'http://' + req.host + '/download/' + attachment
         }

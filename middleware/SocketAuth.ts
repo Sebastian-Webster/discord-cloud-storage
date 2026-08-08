@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { Socket } from "socket.io";
-import { ExtendedError } from "socket.io/dist/namespace";
+import { ExtendedError } from "socket.io";
 
 export function validateSocketAuth(socket: Socket, next: (err?: ExtendedError) => void) {
     const userId = socket.handshake.auth.userId;

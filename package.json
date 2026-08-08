@@ -9,8 +9,7 @@
     "mongoose": "^9.9.1",
     "multer": "^2.2.0",
     "path": "^0.12.7",
-    "socket.io": "^4.8.3",
-    "typescript": "^5.9.3"
+    "socket.io": "^4.8.3"
   },
   "scripts": {
     "start": "npx ts-node index.ts --files types/index.d.ts",
@@ -22,7 +21,9 @@
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
     "@types/node": "^26.1.2",
+    "@types/semver": "^7.8.0",
     "express-rate-limit": "^8.6.2",
-    "mongodb-memory-server": "^11.2.0"
+    "mongodb-memory-server": "^11.2.0",
+    "typescript": "^7.0.2"
   }
 }

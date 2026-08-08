@@ -49,7 +49,8 @@ function writeStreamPromise(stream: fs.WriteStream, chunk: Buffer): Promise<void
 }
 
 userController.post('/file', upload.single('file'), (req, res) => {
-    if (!req.file) {
+    const file = req.file
+    if (!file) {
         return HTTP.SendHTTP(req, res, 400, 'A file must be provided.')
     }
 
@@ -63,9 +64,9 @@ userController.post('/file', upload.single('file'), (req, res) => {
 
         console.log('Initiating file upload...')
 
-        const chunkCount = Math.ceil(req.file.size / FileChunkSize)
+        const chunkCount = Math.ceil(file.size / FileChunkSize)
 
-        const uploader = new Uploader(req.file.path, chunkCount, req, res, req.cookies.auth, req.file.originalname, req.file.size, req.body.fileId)
+        const uploader = new Uploader(file.path, chunkCount, req, res, req.cookies.auth, file.originalname, file.size, req.body.fileId)
 
         for (let i = 0; i < chunkCount; i++) {
             uploader.uploadChunk(i)
