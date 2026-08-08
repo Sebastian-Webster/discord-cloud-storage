@@ -12,13 +12,27 @@ export type MessageAttachment = {
     uploaded_filename: string
 }
 
+if (parentPort === null) {
+    // This is here to resolve a type error because parentPort may be 'null'.
+    throw 'parentPort is null.'
+}
+
 function partialReadFile(start: number, end: number): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(filePath, {start, end})
-        const buffers = [];
+        const stream = fs.createReadStream(filePath, {start, end, encoding: 'binary'})
+        const buffers: Buffer[] = [];
 
         stream.on('data', (chunk) => {
-            buffers.push(chunk)
+            let chunkPiece = chunk
+
+            if (typeof chunkPiece === 'string') {
+                // chunkPiece should never be a string as the encoding is set to binary, but this is here to
+                // resolve a type error as the type for fs.createReadStream chunks is 'string | NonSharedBuffer'
+                console.error('chunkPiece is a string. Converting to buffer.')
+                chunkPiece = Buffer.from(chunkPiece)
+            }
+
+            buffers.push(chunkPiece)
         })
 
         stream.on('error', (err) => {
@@ -40,6 +54,10 @@ function encryptBuffer(buffer: Buffer): Buffer {
 }
 
 parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachToMessage?: MessageAttachment[] | undefined}) => {
+    if (parentPort === null) {
+        // This is here to resolve a type error because parentPort may be 'null'.
+        throw 'parentPort is null'
+    }
     const {chunkNumber, attachmentsToAttachToMessage} = data;
 
     let event: UploadWorkerEvent
@@ -49,7 +67,7 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
         const startReadPosition = chunkNumber * FileChunkSize + (chunkNumber === 0 ? 0 : 1)
         const endReadPosition = (chunkNumber + 1) * FileChunkSize
 
-        let fileBuffer: Buffer
+        let fileBuffer: Buffer | undefined = undefined;
 
         try {
             fileBuffer = await partialReadFile(startReadPosition, endReadPosition)
@@ -78,7 +96,7 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
             }, {
                 headers: authHeaders
             })
-        } catch (error) {
+        } catch (error: any) {
             const retryAfter = error?.response?.data?.retry_after
             if (retryAfter) {
                 const waitTime = retryAfter * 1100
@@ -98,7 +116,7 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
         const upload_url = attachments[0].upload_url
         const uploaded_filename = attachments[0].upload_filename
 
-        let uploadAttachmentError;
+        let uploadAttachmentError: any;
 
         try {
             await axios.put(upload_url, encryptedBuffer, {
@@ -134,7 +152,7 @@ parentPort.on('message', async (data: {chunkNumber: number, attachmentsToAttachT
         }, {
             headers: authHeaders
         })
-    } catch (error) {
+    } catch (error: any) {
         const retryAfter = error?.response?.data?.retry_after
         if (retryAfter) {
             const waitTime = retryAfter * 1100
