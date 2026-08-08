@@ -4,7 +4,6 @@ import crypto from 'crypto'
 import axiosPackage from 'axios';
 import fsPromises from 'fs/promises'
 import os from 'os'
-import mongoose from 'mongoose';
 
 const DCSServerTempLocation = os.tmpdir() + '/dcsserver'
 
@@ -18,6 +17,9 @@ async function test() {
 
     if (typeof testAddress === 'string') throw 'test address is string'
     if (typeof realAddress === 'string') throw 'real address is string'
+
+    if (testAddress === null) throw 'test address is null'
+    if (realAddress === null) throw 'real address is null'
 
     const testURL = `http://127.0.0.1:${testAddress.port}`
     const realServerURL = `http://127.0.0.1:${realAddress.port}`
@@ -37,7 +39,7 @@ async function test() {
 
     // Login
 
-    const cookie = (await axios.post('/login', {username: 'test', password: 'testingapp'})).headers['set-cookie'][0]
+    const cookie = (await axios.post('/login', {username: 'test', password: 'testingapp'})).headers['set-cookie']?.[0]
 
     console.log('Logged in')
 

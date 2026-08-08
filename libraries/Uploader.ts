@@ -108,6 +108,14 @@ export default class Uploader {
             if (this.#crashedThreadRestartCount++ < this.#maxThreadRestartsAfterCrash) {
                 console.error(`Restarting worker thread after crash. Crashed restart count: ${this.#crashedThreadRestartCount}/${this.#maxThreadRestartsAfterCrash}`)
                 this.#uploadWorkers.splice(workerIndex, 1, {worker: this.#createWorker(workerIndex), status: 'READY', workingOnChunkNumber: null})
+
+                if (typeof worker.workingOnChunkNumber !== 'number') {
+                    // This is here to resolve a type error for this.uploadChunk, ensuring that it is only being provided a number.
+                    // An error on a null chunk number should be impossible. If this code block is hit, there is a major bug.
+                    console.error(new Error('workingOnChunkNumber is not a number'))
+                    return
+                }
+
                 this.uploadChunk(worker.workingOnChunkNumber)
                 return
             }
@@ -121,6 +129,12 @@ export default class Uploader {
                 console.error('All upload workers have either failed to initialise or have crashed. Logging workers:', this.#uploadWorkers)
                 this.#cancelDueToError('All upload workers have either failed to initialise or have crashed.')
             } else {
+                if (typeof worker.workingOnChunkNumber !== 'number') {
+                    // This is here to resolve a type error for this.uploadChunk, ensuring that it is only being provided a number.
+                    // An error on a null chunk number should be impossible. If this code block is hit, there is a major bug.
+                    console.error(new Error('workingOnChunkNumber is not a number'))
+                    return
+                }
                 this.uploadChunk(worker.workingOnChunkNumber)
             }
 

@@ -1,6 +1,6 @@
 import { MongoMemoryServer } from "mongodb-memory-server";
 
-let db: MongoMemoryServer;
+let db: MongoMemoryServer | undefined = undefined;
 
 export async function getURI(): Promise<string> {
     if (!db) {

@@ -1,11 +1,11 @@
 import { Errback, Request, Response } from "express"
 
 export default class HTTP {
-    static ServerError(message: string): IHTTPServerError {
+    static ServerError(message: any): IHTTPServerError {
         return {
             status: 500,
             data: {
-                message
+                message: String(message)
             }
         }
     }
@@ -55,7 +55,7 @@ export default class HTTP {
         return true
     }
 
-    static SendHTTP(req: Request, res: Response, status: number, data: object | any[] | string, options?: SendHTTPOptions): void {
+    static SendHTTP(req: Request, res: Response, status: number, data: Record<string, unknown> | any[] | string | undefined, options?: SendHTTPOptions): void {
         if (!this.#CanSendHTTP(req, res)) return
 
         if (options?.clearCookie) {
@@ -64,16 +64,17 @@ export default class HTTP {
 
         if (options?.setCookies) {
             for (const cookie of options.setCookies) {
-                res.cookie(cookie.name, cookie.val, cookie.cookieOptions);
+                res.cookie(cookie.name, cookie.val, cookie.cookieOptions ?? {});
             }
         }
 
         if (typeof data === 'object' && data !== null) {
             res.status(status).json(data)
-            return
+        } else if (typeof data === 'undefined') {
+            res.sendStatus(status)
+        } else {
+            res.status(status).send(data)
         }
-
-        res.status(status).send(data)
     }
 
     static SendDownloadableFile(req: Request, res: Response, filePath: string, callback?: Errback): void {
