@@ -19,15 +19,13 @@ if (parentPort === null) {
 
 function partialReadFile(start: number, end: number): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-        const stream = fs.createReadStream(filePath, {start, end, encoding: 'binary'})
+        const stream = fs.createReadStream(filePath, {start, end})
         const buffers: Buffer[] = [];
 
         stream.on('data', (chunk) => {
             let chunkPiece = chunk
 
             if (typeof chunkPiece === 'string') {
-                // chunkPiece should never be a string as the encoding is set to binary, but this is here to
-                // resolve a type error as the type for fs.createReadStream chunks is 'string | NonSharedBuffer'
                 console.error('chunkPiece is a string. Converting to buffer.')
                 chunkPiece = Buffer.from(chunkPiece)
             }
