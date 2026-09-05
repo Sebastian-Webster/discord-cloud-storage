@@ -20,7 +20,7 @@
     "@types/cookie-parser": "^1.4.10",
     "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
-    "@types/node": "^26.2.0",
+    "@types/node": "^26.4.1",
     "@types/semver": "^7.8.0",
     "express-rate-limit": "^8.6.2",
     "mongodb-memory-server": "^11.2.0",
